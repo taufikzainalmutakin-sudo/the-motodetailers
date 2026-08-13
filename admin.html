@@ -38,12 +38,13 @@
 const SUPABASE_URL='https://nbsmkxarkpesjiftmbwm.supabase.co';
 const SUPABASE_KEY='sb_publishable_dMXeVPXD_oU5NrdV2-sSew_CZxB5lFI';
 const ADMIN_EMAIL='taufikzainalmutakin@gmail.com';
+const PRODUCTION_ADMIN_URL='https://the-motodetailers-site.taufikzainalmutakin.workers.dev/admin.html';
 const {createClient}=supabase; const db=createClient(SUPABASE_URL,SUPABASE_KEY);
 let services=[],sizes=[],motors=[],prices=[],settings={};
 const $=id=>document.getElementById(id); const money=n=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n||0);
 function toast(t){$('toast').textContent=t;$('toast').classList.remove('hidden');setTimeout(()=>$('toast').classList.add('hidden'),2600)}
 function msg(t,err=false){$('loginStatus').textContent=t;$('loginStatus').style.background=err?'#fef2f2':'#eff6ff';$('loginStatus').style.color=err?'#b91c1c':'#1d4ed8'}
-$('sendLogin').onclick=async()=>{const email=ADMIN_EMAIL;msg('Mengirim link login...');const {error}=await db.auth.signInWithOtp({email,options:{shouldCreateUser:true,emailRedirectTo:window.location.href}});if(error)return msg(error.message,true);$('loginStep').classList.remove('hidden');msg('Link login sudah dikirim. Cek email admin.');};
+$('sendLogin').onclick=async()=>{const email=ADMIN_EMAIL;msg('Mengirim link login...');const {error}=await db.auth.signInWithOtp({email,options:{shouldCreateUser:true,emailRedirectTo:PRODUCTION_ADMIN_URL}});if(error)return msg(error.message,true);$('loginStep').classList.remove('hidden');msg('Link login sudah dikirim. Cek email admin.');};
 $('logout').onclick=async()=>{await db.auth.signOut();location.reload()};
 async function boot(){const {data:{user}}=await db.auth.getUser();if(!user)return;if((user.email||'').toLowerCase()!==ADMIN_EMAIL.toLowerCase()){await db.auth.signOut();$('loginView').classList.remove('hidden');msg('Email ini bukan email admin.',true);return}const {data:profile,error}=await db.from('profiles').select('full_name,role').eq('id',user.id).single();if(error||!profile||profile.role!=='admin'){await db.auth.signOut();$('loginView').classList.remove('hidden');msg('Akun admin belum siap. Silakan kirim link login lagi.',true);return} $('loginView').classList.add('hidden');$('app').classList.remove('hidden');$('userInfo').textContent=profile.full_name||user.email||'Admin';await loadAll()}
 async function loadAll(){await Promise.all([loadBookings(),loadServices(),loadSizes(),loadMotors(),loadPrices(),loadSettings()]);updateStats()}
