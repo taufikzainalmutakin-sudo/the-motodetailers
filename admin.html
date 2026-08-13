@@ -14,10 +14,10 @@
   <div class="login">
     <div class="pill">ADMIN</div><h1>THE MOTODETAILERS</h1>
     <p class="muted">Masuk ke dashboard untuk mengelola booking, layanan, harga, katalog motor dan pengaturan website.</p>
-    <div id="loginStatus" class="status">Masukkan nomor HP admin untuk menerima OTP.</div>
-    <label>Nomor HP</label><input id="phone" class="input" inputmode="tel" placeholder="Contoh: +628xxxxxxxxxx">
-    <button id="sendOtp" class="btn" style="width:100%">Kirim OTP</button>
-    <div id="otpStep" class="login-step hidden"><label>Kode OTP</label><input id="otp" class="input" inputmode="numeric" maxlength="6" placeholder="6 digit OTP"><button id="verifyOtp" class="btn" style="width:100%">Masuk</button></div>
+    <div id="loginStatus" class="status">Gunakan email admin untuk menerima link login.</div>
+    <label>Email Admin</label><input id="email" class="input" type="email" value="taufikzainalmutakin@gmail.com" readonly autocomplete="email">
+    <button id="sendLogin" class="btn" style="width:100%">Kirim Link Login</button>
+    <div id="loginStep" class="login-step hidden"><p class="muted">Cek inbox email <b>taufikzainalmutakin@gmail.com</b>, lalu tekan link login dari Supabase. Setelah terverifikasi, dashboard admin akan terbuka.</p></div>
   </div>
 </div>
 
@@ -37,16 +37,15 @@
 <script>
 const SUPABASE_URL='https://nbsmkxarkpesjiftmbwm.supabase.co';
 const SUPABASE_KEY='sb_publishable_dMXeVPXD_oU5NrdV2-sSew_CZxB5lFI';
+const ADMIN_EMAIL='taufikzainalmutakin@gmail.com';
 const {createClient}=supabase; const db=createClient(SUPABASE_URL,SUPABASE_KEY);
 let services=[],sizes=[],motors=[],prices=[],settings={};
 const $=id=>document.getElementById(id); const money=n=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n||0);
 function toast(t){$('toast').textContent=t;$('toast').classList.remove('hidden');setTimeout(()=>$('toast').classList.add('hidden'),2600)}
 function msg(t,err=false){$('loginStatus').textContent=t;$('loginStatus').style.background=err?'#fef2f2':'#eff6ff';$('loginStatus').style.color=err?'#b91c1c':'#1d4ed8'}
-function normalizePhone(v){v=v.trim().replace(/\s+/g,'');if(v.startsWith('08'))v='+62'+v.slice(1);return v}
-$('sendOtp').onclick=async()=>{const phone=normalizePhone($('phone').value);if(!/^\+\d{8,15}$/.test(phone))return msg('Nomor HP belum valid.',true);msg('Mengirim OTP...');const {error}=await db.auth.signInWithOtp({phone});if(error)return msg(error.message,true);$('otpStep').classList.remove('hidden');msg('OTP sudah dikirim. Masukkan 6 digit kode.');$('phone').value=phone};
-$('verifyOtp').onclick=async()=>{const phone=$('phone').value.trim(),token=$('otp').value.trim();if(token.length!==6)return msg('OTP harus 6 digit.',true);msg('Memverifikasi...');const {error}=await db.auth.verifyOtp({phone,token,type:'sms'});if(error)return msg(error.message,true);await boot()};
+$('sendLogin').onclick=async()=>{const email=ADMIN_EMAIL;msg('Mengirim link login...');const {error}=await db.auth.signInWithOtp({email,options:{shouldCreateUser:true,emailRedirectTo:window.location.href}});if(error)return msg(error.message,true);$('loginStep').classList.remove('hidden');msg('Link login sudah dikirim. Cek email admin.');};
 $('logout').onclick=async()=>{await db.auth.signOut();location.reload()};
-async function boot(){const {data:{user}}=await db.auth.getUser();if(!user)return;const {data:profile,error}=await db.from('profiles').select('full_name,role').eq('id',user.id).single();if(error||!profile||profile.role!=='admin'){await db.auth.signOut();$('loginView').classList.remove('hidden');msg('Akun ini belum memiliki akses admin.',true);return} $('loginView').classList.add('hidden');$('app').classList.remove('hidden');$('userInfo').textContent=profile.full_name||user.phone||user.email||'Admin';await loadAll()}
+async function boot(){const {data:{user}}=await db.auth.getUser();if(!user)return;if((user.email||'').toLowerCase()!==ADMIN_EMAIL.toLowerCase()){await db.auth.signOut();$('loginView').classList.remove('hidden');msg('Email ini bukan email admin.',true);return}const {data:profile,error}=await db.from('profiles').select('full_name,role').eq('id',user.id).single();if(error||!profile||profile.role!=='admin'){await db.auth.signOut();$('loginView').classList.remove('hidden');msg('Akun admin belum siap. Silakan kirim link login lagi.',true);return} $('loginView').classList.add('hidden');$('app').classList.remove('hidden');$('userInfo').textContent=profile.full_name||user.email||'Admin';await loadAll()}
 async function loadAll(){await Promise.all([loadBookings(),loadServices(),loadSizes(),loadMotors(),loadPrices(),loadSettings()]);updateStats()}
 async function loadBookings(){const {data,error}=await db.from('bookings').select('*').order('appointment_date',{ascending:true}).order('appointment_time',{ascending:true});if(error)return toast(error.message);const today=new Date().toISOString().slice(0,10);$('bookingRows').innerHTML=(data||[]).map(b=>`<tr><td><b>${esc(b.customer_name)}</b><br><span class="small">${esc(b.phone||'')}</span></td><td>${esc(b.motor_type||'-')}<br><span class="small">${esc(b.plate_number||'')} ${esc(b.motor_color||'')}</span></td><td>${b.appointment_date||'-'}<br>${b.appointment_time?b.appointment_time.slice(0,5):'-'}</td><td>${b.dp_paid?'✅ ':''}${money(b.dp_amount)}</td><td><span class="pill">${esc(b.status)}</span></td><td><div class="row-actions"><button class="btn small" onclick="cycleBooking('${b.id}','${escAttr(b.status)}')">Ubah status</button><button class="btn gray small" onclick="toggleDp('${b.id}',${!b.dp_paid})">DP ${b.dp_paid?'belum':'lunas'}</button><button class="btn danger small" onclick="deleteBooking('${b.id}')">Hapus</button></div></td></tr>`).join('')||'<tr><td colspan="6" class="empty">Belum ada booking.</td></tr>';window._bookings=data||[];window._todayCount=(data||[]).filter(x=>x.appointment_date===today).length;window._pending=(data||[]).filter(x=>x.status==='pending').length}
 async function loadServices(){const {data,error}=await db.from('services').select('*').order('sort_order');if(error)return toast(error.message);services=data||[];$('serviceList').innerHTML=services.map(s=>`<div class="card" style="margin:8px 0"><div class="panelhead"><div><b>${esc(s.name)}</b><div class="muted">${esc(s.description||'')}</div></div><span class="pill">${s.active?'Aktif':'Nonaktif'}</span></div><div class="row-actions" style="margin-top:10px"><button class="btn small" onclick="editService('${s.id}')">Edit</button><button class="btn gray small" onclick="toggleService('${s.id}',${!s.active})">${s.active?'Nonaktifkan':'Aktifkan'}</button><button class="btn danger small" onclick="deleteService('${s.id}')">Hapus</button></div></div>`).join('')||'<div class="empty">Belum ada layanan.</div>'}
@@ -72,5 +71,5 @@ async function saveSettings(){const vals={whatsapp:{url:$('setWhatsapp').value.t
 function closeEditors(){$('serviceEditor').classList.add('hidden');$('motorEditor').classList.add('hidden')}
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}function escAttr(v){return String(v??'').replace(/'/g,"\\'")}
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tabpage').forEach(x=>x.classList.add('hidden'));b.classList.add('active');$(b.dataset.tab).classList.remove('hidden')});
-db.auth.getSession().then(boot);db.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT')location.reload()});
+db.auth.getSession().then(boot);db.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT')location.reload();if(event==='SIGNED_IN')boot()});
 </script></body></html>
