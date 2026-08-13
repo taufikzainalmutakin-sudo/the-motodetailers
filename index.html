@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0757d9">
+<title>THE MOTODETAILERS — Premium Motorcycle Care</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f4f7ff;color:#111827}
+header{background:#0757d9;color:#fff;padding:22px 18px;text-align:center}
+.brand{font-size:28px;font-weight:900;letter-spacing:1px}
+.tag{margin:6px 0 0;opacity:.9}
+.hero{background:linear-gradient(135deg,#0757d9,#0b67f0);color:#fff;padding:34px 20px 44px;text-align:center;border-radius:0 0 30px 30px}
+.hero h1{margin:0;font-size:30px}.hero p{max-width:600px;margin:12px auto 22px;line-height:1.6}
+.btn{display:inline-block;border:0;background:#fff;color:#0757d9;padding:13px 20px;border-radius:12px;text-decoration:none;font-weight:800;cursor:pointer}
+.container{max-width:1000px;margin:auto;padding:28px 16px}
+.section-title{font-size:24px;margin:0 0 16px}
+.services{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.service{background:#fff;padding:18px;border-radius:16px;border:1px solid #e5e7eb;box-shadow:0 5px 18px rgba(0,0,0,.06)}
+.service h3{margin:0;color:#0757d9;font-size:17px}.service p{color:#6b7280;font-size:13px;line-height:1.5}
+.searchbox{margin:30px 0 18px;background:#fff;padding:18px;border-radius:18px;box-shadow:0 5px 18px rgba(0,0,0,.06)}
+.searchbox input{width:100%;padding:15px 16px;border:2px solid #dbe5ff;border-radius:12px;font-size:16px;outline:none}
+.searchbox input:focus{border-color:#0757d9}
+.results{margin-top:12px}
+.result{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px;margin:9px 0}
+.result strong{color:#0757d9}.pill{display:inline-block;background:#eaf1ff;color:#0757d9;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;margin-left:5px}
+.pricegrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}
+.pricelist-section{margin-top:30px;background:#fff;padding:20px;border-radius:18px;box-shadow:0 5px 18px rgba(0,0,0,.06);border:1px solid #e5e7eb}
+.size-buttons{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.size-btn{border:1px solid #dbe5ff;background:#f4f7ff;color:#0757d9;padding:10px 13px;border-radius:10px;font-weight:800;cursor:pointer}
+.size-btn.active{background:#0757d9;color:#fff;border-color:#0757d9}
+.price-card{border:1px solid #e5e7eb;border-radius:15px;padding:14px;background:#fff}
+.price-card h3{margin:0 0 8px;color:#0757d9;font-size:18px}
+.price-card .pricegrid{margin-top:4px}
+@media(max-width:600px){.size-btn{flex:1 1 calc(50% - 8px)}}
+
+.priceitem{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid #eef1f7;padding:9px 0;font-size:13px}
+.priceitem b{color:#0757d9}
+.note{font-size:12px;color:#6b7280;line-height:1.5}
+.cta{margin-top:30px;background:#0757d9;color:#fff;padding:28px 20px;border-radius:20px;text-align:center}
+footer{text-align:center;padding:25px 15px;color:#6b7280;font-size:13px}
+@media(max-width:600px){.services,.pricegrid{grid-template-columns:1fr 1fr}.brand{font-size:23px}.hero h1{font-size:26px}}
+
+/* SOCIAL & CONTACT */
+.social-section {
+    margin-top: 30px;
+}
+
+.social-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.social-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    border-radius: 16px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 5px 18px rgba(0,0,0,0.06);
+    text-decoration: none;
+    color: #111827;
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.social-card:active {
+    transform: scale(.98);
+}
+
+.social-card strong {
+    font-size: 17px;
+}
+
+.social-card span {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.social-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 46px;
+}
+
+.social-icon svg {
+    width: 25px;
+    height: 25px;
+    display: block;
+}
+
+.social-card {
+    flex-direction: row;
+    align-items: center;
+    min-height: 92px;
+}
+
+.social-card.tiktok .social-icon { background: #111827; color: #fff; }
+.social-card.instagram .social-icon { background: linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045); color: #fff; }
+.social-card.maps .social-icon { background: #e8f0fe; color: #4285f4; }
+.social-card.whatsapp .social-icon { background: #dcfce7; color: #16a34a; }
+
+.social-card.tiktok strong {
+    color: #111111;
+}
+
+.social-card.instagram strong {
+    color: #d62976;
+}
+
+.social-card.maps strong {
+    color: #2563eb;
+}
+
+.social-card.whatsapp strong {
+    color: #16a34a;
+}
+
+@media (max-width: 500px) {
+    .social-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+
+/* BOOKING WHATSAPP */
+.booking-section {
+    margin-top: 30px;
+}
+
+.booking-card {
+    background: #ffffff;
+    padding: 26px 20px;
+    border-radius: 20px;
+    text-align: center;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 5px 18px rgba(0,0,0,0.06);
+}
+
+.booking-card h2 {
+    margin: 0 0 10px;
+    color: #111827;
+}
+
+.booking-card p {
+    margin: 0 0 20px;
+    color: #6b7280;
+    line-height: 1.5;
+    font-size: 14px;
+}
+
+.booking-button {
+    display: inline-block;
+    background: #16a34a;
+    color: #ffffff;
+    padding: 14px 20px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 800;
+}
+
+.service-link {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+}
+.service-link:active {
+    transform: scale(.99);
+}
+
+.company-logo {
+    width: min(220px, 65vw);
+    max-height: 72px;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto 10px;
+}
+
+</style>
+</head>
+<body>
+<header>
+        <img src="tmd_assets/logo-the-motodetailers.png" alt="THE MOTODETAILERS" class="company-logo">
+<div class="brand">THE MOTODETAILERS</div><div class="tag">Premium Motorcycle Care</div></header>
+<section class="hero">
+<h1>Bikin Motor Kamu Ganteng 🏍️</h1>
+<p>Perawatan, wash, polishing, detailing dan nano protection untuk motor kamu.</p>
+<a class="btn" href="#katalog">Cari Motor</a>
+</section>
+
+<main class="container">
+<h2 class="section-title">Layanan Kami</h2>
+<div class="services">
+<a class="service service-link" href="https://www.instagram.com/reel/DbdUnqDyZAs/?igsh=djU1YnBmOWloZTBs&igsi=djU1YnBmOWloZTBs" target="_blank" rel="noopener noreferrer"><h3>Premium Wash</h3><p>Cuci premium menggunakan sabun khusus dan engine degreaser pada area mesin hingga kaki-kaki. Diakhiri vinyl wax dan semir ban (opsional).</p></a>
+<a class="service service-link" href="https://www.instagram.com/reel/Da5RX5xSROM/?igsh=MWN3ZzVmOHRlbjRpdg==&igsi=MWN3ZzVmOHRlbjRpdg==" target="_blank" rel="noopener noreferrer"><h3>Glossin Aja</h3><p>Cuci Kinclong Pro dilanjut poles body glossy 1x menyeluruh.</p></a>
+<a class="service service-link" href="https://www.instagram.com/reel/Da0OqynyfE3/?igsh=dGtsdnFoMzNxMHB0&igsi=dGtsdnFoMzNxMHB0" target="_blank" rel="noopener noreferrer"><h3>Glossin Pro</h3><p>Cuci Kinclong Pro dilanjut poles body glossy 3x menyeluruh.</p></a>
+<a class="service service-link" href="https://www.instagram.com/reel/DbnoZTkykAL/?igsh=MWVpOHg2ajlrY2lhdg==&igsi=MWVpOHg2ajlrY2lhdg==" target="_blank" rel="noopener noreferrer"><h3>Detailin Pro</h3><p>Cuci rangka detail dengan degreaser, dilanjut poles body halus 3x.</p></a>
+<a class="service service-link" href="https://www.instagram.com/reel/DXjcYkvEXDF/?igsh=eHlrMTlyMGdwNG1n&igsi=eHlrMTlyMGdwNG1n" target="_blank" rel="noopener noreferrer"><h3>NanoShine</h3><p>Perawatan dan proteksi nano coating untuk body motor.</p></a>
+<a class="service service-link" href="https://www.instagram.com/reel/DTKrCgXkn1w/?igsh=cWZhNDl1c2wxNjE=&igsi=cWZhNDl1c2wxNjE=" target="_blank" rel="noopener noreferrer"><h3>Cuci Rangka Pro</h3><p>Semi-detailing rangka, crankcase dan perkabelan. Motor wajib sudah trondol.</p></a>
+<div class="service"><h3>NanoShine Express</h3><p>Cuci Premium + poles body 3x + proteksi cairan NanoShine dalam waktu singkat.</p></div>
+<div class="service"><h3>Detailing Doff</h3><p>Khusus body motor doff. Cuci rangka dan body tanpa proses poles.</p></div>
+</div>
+
+<section id="katalog" class="searchbox">
+<h2 class="section-title">Cari Motor & Size</h2>
+<input id="search" type="search" placeholder="Ketik tipe motor, contoh: Vario 160, Ninja 250, R15..." autocomplete="off">
+<div id="results" class="results"><p class="note">Ketik minimal 2 karakter untuk mencari.</p></div>
+</section>
+
+<section id="pricelist" class="pricelist-section">
+<h2 class="section-title">Pricelist</h2>
+<p class="note">Pilih size motor untuk melihat harga treatment.</p>
+<div class="size-buttons">
+<button class="size-btn active" data-size="small">Small</button>
+<button class="size-btn" data-size="medium">Medium</button>
+<button class="size-btn" data-size="large">Large</button>
+<button class="size-btn" data-size="xlarge">Xtra Large</button>
+<button class="size-btn" data-size="super">Super Large</button>
+</div>
+<div id="priceTable" class="price-card"></div>
+</section>
+
+
+<!-- SOCIAL LINKS START -->
+<section class="social-section">
+    <h2 class="section-title">Hubungi & Ikuti Kami</h2>
+
+    <div class="social-grid">
+
+        <a class="social-card tiktok"
+           href="https://www.tiktok.com/@the.motodetailers?_r=1&_t=ZS-98pZ8uXkvKi"
+           target="_blank"
+           rel="noopener noreferrer">
+            <div class="social-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.8 4.2c.8 1.1 1.8 1.8 3.2 1.9v2.7a8.1 8.1 0 0 1-3.2-1v6.1a5.1 5.1 0 1 1-4.4-5v2.8a2.4 2.4 0 1 0 1.7 2.2V2h2.7v2.2z"/></svg>
+            </div>
+        </a>
+
+        <a class="social-card instagram"
+           href="https://www.instagram.com/the.motodetailers?igsh=MWd0Z2pneTlmMGQ3ag==&igsi=MWd0Z2pneTlmMGQ3ag=="
+           target="_blank"
+           rel="noopener noreferrer">
+            <div class="social-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+            </div>
+        </a>
+
+        <a class="social-card maps"
+           href="https://maps.app.goo.gl/KkX9TFAw1VScUx1G6"
+           target="_blank"
+           rel="noopener noreferrer">
+            <div class="social-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5A7.5 7.5 0 0 0 4.5 10c0 5.3 7.5 11.5 7.5 11.5S19.5 15.3 19.5 10A7.5 7.5 0 0 0 12 2.5zm0 10.7A3.2 3.2 0 1 1 12 6.8a3.2 3.2 0 0 1 0 6.4z"/></svg>
+            </div>
+        </a>
+
+        <a class="social-card whatsapp"
+           href="https://wa.me/6287878333037?text=Nama%3A%0AJenis%20motor%3A%0ANo%20plat%3A%0AWarna%20motor%3A%0AJenis%20treatment%3A%0ATanggal%20kedatangan%3A%0AJam%20kedatangan%3A%0A%0AMohon%20transfer%20DP%20sebesar%20ke%20rekening%20BCA%202730455677%20an%20Dea%20Pratama%20Chandra%20untuk%20tanda%20jadi%20booking.%20Jika%20belum%20transfer%201x24%20jam%20slot%20akan%20hangus%20dan%20akan%20diisi%20oleh%20customer%20lain%F0%9F%99%8F"
+           target="_blank"
+           rel="noopener noreferrer">
+            <div class="social-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 3.5A11.9 11.9 0 0 0 12.1 0C5.6 0 .3 5.3.3 11.8c0 2.1.6 4.1 1.6 5.8L.2 24l6.5-1.7a11.8 11.8 0 0 0 5.4 1.3h.1c6.5 0 11.8-5.3 11.8-11.8 0-3.1-1.2-6.1-3.5-8.3zM12.2 21.5h-.1c-1.7 0-3.4-.5-4.8-1.4l-.3-.2-3.8 1 1-3.7-.2-.3a9.7 9.7 0 0 1-1.5-5.2C2.5 6.4 6.8 2 12.2 2c2.6 0 5.1 1 6.9 2.9a9.8 9.8 0 0 1 2.9 6.9c0 5.4-4.4 9.7-9.8 9.7zm5.3-7.3c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.2-.4-2.3-1.4-.9-.8-1.4-1.8-1.6-2.1-.2-.3 0-.5.1-.7.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5.1-.2.1-.4 0-.6-.1-.2-.7-1.7-1-2.3-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1.1 1-1.1 2.5s1.1 2.9 1.2 3.1c.2.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.8-.7 2.1-1.4.3-.7.3-1.3.2-1.4-.1-.2-.3-.3-.6-.4z"/></svg>
+            </div>
+        </a>
+
+    </div>
+</section>
+<!-- SOCIAL LINKS END -->
+
+
+<!-- BOOKING WHATSAPP START -->
+<section class="booking-section">
+    <div class="booking-card">
+        <h2>Booking via WhatsApp</h2>
+        <p>Tekan tombol di bawah untuk booking. Format pesan sudah otomatis terisi.</p>
+        <a class="booking-button"
+           href="https://wa.me/6287878333037?text=Nama%3A%0AJenis%20motor%3A%0ANo%20plat%3A%0AWarna%20motor%3A%0AJenis%20treatment%3A%0ATanggal%20kedatangan%3A%0AJam%20kedatangan%3A%0A%0AMohon%20transfer%20DP%20sebesar%20ke%20rekening%20BCA%202730455677%20an%20Dea%20Pratama%20Chandra%20untuk%20tanda%20jadi%20booking.%20Jika%20belum%20transfer%201x24%20jam%20slot%20akan%20hangus%20dan%20akan%20diisi%20oleh%20customer%20lain%F0%9F%99%8F"
+           target="_blank"
+           rel="noopener noreferrer">
+            💬 Booking Sekarang via WhatsApp
+        </a>
+    </div>
+</section>
+<!-- BOOKING WHATSAPP END -->
+
+<section class="cta">
+<h2>Siap Bikin Motor Kamu Kinclong?</h2>
+<p>Cari tipe motor kamu di katalog untuk melihat size dan treatment yang tersedia.</p>
+<a class="btn" href="#katalog">Cari Sekarang</a>
+</section>
+</main>
+<footer>© 2026 THE MOTODETAILERS</footer>
+
+<script>
+const prices = {
+small:{premium:40000,glossAja:250000,glossPro:300000,detailin:430000,nano:780000,doff:380000,nanoExpress:580000,frame:58000},
+medium:{premium:50000,glossAja:270000,glossPro:350000,detailin:630000,nano:980000,doff:580000,nanoExpress:780000,frame:68000},
+large:{premium:60000,glossAja:450000,glossPro:500000,detailin:830000,nano:1330000,doff:780000,nanoExpress:980000,frame:78000},
+xlarge:{premium:80000,glossAja:650000,glossPro:700000,detailin:1130000,nano:2230000,doff:980000,nanoExpress:1300000,frame:98000},
+super:{premium:180000,glossAja:900000,glossPro:950000,detailin:1900000,nano:3320000,doff:1400000,nanoExpress:2500000,frame:178000}
+};
+const sizeNames={small:"Small",medium:"Medium",large:"Large",xlarge:"Xtra Large",super:"Super Large"};
+
+const catalog = [
+["Honda","small",`Beat Series|Genio|Vario 110,125,150|Revo|Supra|Blade|Scoopy Series|Sonic 150R|Sonic|SH 150i|Super Cub C125|CT 125|Monkey|Astrea Series|S Series|C 70|Super Cub C700|Super Cub C800|Win 100|CS One|Nova Dash|Spacy|Nice|EM1`],
+["Honda","medium",`PCX Series|Vario 160|CB 150|CB 150R|Megapro|GL Pro|Tiger Series|Supercub|ADV 150|ADV 160|CB 125|Verza|ST125 DAX|Supra GTR 150|Giorno|Stylo 160`],
+["Honda","large",`CBR 150|CBR 250|CB 150X|Forza|X ADV|NSR Series|Phantom|XR250|CRF 250|CB 400|Steed 400 VLX|CRF 150L|CRF 150`],
+["Honda","xlarge",`CB 500F|CB 500X|CBR 500R|CB 650R|Shadow|Rebel|CRF1000 series|ST 300|CRF 1000L|CRF 1100L|VT 600|XL750 Translap`],
+["Honda","super",`Goldwing|CBR 1000RR-R|NM4 Vultus`],
+
+["Yamaha","small",`Mio Series|Jupiter Series|X Ride|Fino|Free Go|Gear|Cygnus|FIZ Series|Force One|Vega Series|Sigma Series|RX/AX Old Series|Xeon|Fazzio|Nouvo|Tiara S|All New Soul GT|Glide|Lexam`],
+["Yamaha","medium",`RXZ|RX King|Lexi|Lexi LX 155|Byson|Aerox|Vixion|N Max|Xabre|XSR 155|WR 155R|WR 250R|MX King|Filano|Scorpio|Tenere 125`],
+["Yamaha","large",`YZF R15|YZF R25|MT 15|MT 25|XMax Series|R3|Tracer|Tenere 700|XSR 300 Series|XJR 400 Series|XJ 550 Series`],
+["Yamaha","xlarge",`Niken|MT 09|R6|T Max|Dragstar 400|Tricity|MT 07|Tenere 1200|XJR 1200 Series|XJR 1300 Series|XJ 900 Diversion Series|XSR 900 Series|XJ 600 Series|XJ 650 Series|XJ 750 Series|XJ-6|Fazer 400cc`],
+["Yamaha","super",`YZF R1|YZF R1M|XJ 900 Police Series`],
+
+["Suzuki","small",`Address|NEX Series|Smash|Satria Series|Skywave|Skydrive|Tornado Series|Shogun Series|Crystal|Bravo|Spin|Hayate|Suzuki Old Series (<150cc)|Sui 125`],
+["Suzuki","medium",`Thunder Series|A 100|GT 380|Saluto|Burgman Street (125EX)|250 SB|Avenis`],
+["Suzuki","large",`GSX 150 (Bandit)|GSX S150|GSX R150|Burgman|Inazuma 250|V Storm 250 SX|Skywave 250|Gixxer SF 250`],
+["Suzuki","xlarge",`GSR 750|V Storm 650 XT|V Storm 1000|GSX R400`],
+["Suzuki","super",`Hayabusha Series|GSX R1000`],
+
+["Vespa","medium",`LX 125|LX 150|S 125|Primavera 150|Sprint 150|Elettrica`],
+["Vespa","large",`Gts series`],
+
+["Piaggio","small",`Zip|Liberty`],
+["Piaggio","medium",`Medley|Gilera Runner`],
+["Piaggio","large",`Beverly 300|Beverly S300|Beverly Deep Black (300)|Beverly 400|Beverly S400|Beverly Deep Black (400)`],
+["Piaggio","xlarge",`MP3`],
+
+["KTM","medium",`450 ECX-F|RC 125|RC 150`],
+["KTM","large",`390 Adventure|RC 200|RC 250|RC 390|Duke 200|Duke 250|Duke 390|990 Adventure`],
+["KTM","xlarge",`1290 Super Duke R`],
+
+["Benelli","small",`Seta 125|Panarea 125`],
+["Benelli","medium",`Motobi 152|Motobi 200|Caffenero|X150|TNT 249S`],
+["Benelli","large",`TNT 15|TNT 25|TNT 135|TNT 250|Patagonian Eagle|Zafferano 250|Leoncino 250|Leoncino 500|TRK 251|TRK 502X|TRK 502C|Imperiale 400|Leoncino|Caferacer`],
+["Benelli","xlarge",`TNT 899|BN 600`],
+
+["Royal Enfield","large",`Hunter 350|Meteor 350|Continental GT|Scram 411|Signa 350|Classic 350|Classic 500|Bullet 350|Bullet 500`],
+["Royal Enfield","xlarge",`Himalayan|Super Meteor 650|Interceptor 650`],
+
+["Kawasaki","small",`Kaze Series|Athlete|Blade|Z 125 mini|KLS Series|ZX130`],
+["Kawasaki","medium",`W Series (exclude W800)|KSR|Z 125 Pro|Ninja R|Ninja S|Binter Merzy|Estrella 250|Ninja SS`],
+["Kawasaki","large",`KZ 250|Ninja 250|Versys 250|Ninja RR 2|D Tracker|KLX Series`],
+["Kawasaki","xlarge",`ZX25/250|ZX-25R|ZX6R/600|ZX10R/1000|ZX14R/1400|Z650|Z900|W800|Versys 650|Ninja 650|ER6|Vulcan 250|Vulcan 400|Vulcan 500|Vulcan 650|Z800|Eliminator|Eliminator SE`],
+["Kawasaki","super",`Vulcan 1000|Vulcan 1200|Vulcan 1500|Vulcan 1700|Z1000|Versys 1000|Ninja H2|H2R|Vulcan 750|Vulcan 900`],
+
+["Triumph","large",`New Street - (Bonneville Series)|Speed Twin|Street Twin`],
+["Triumph","xlarge",`Tiger 900 GT|Tiger 900 Rally|Tiger 1200|New Bonneville Bobber|New Bonneville Speedmaster|Street Scramber Series|Roadsters|Rocket 3 series|Scrambler 1200`],
+
+["BMW","large",`C400X|C400GT|G310R|GS310`],
+["BMW","xlarge",`C650 GT|C650 Sport|R18 Classic|R1200R|R1200RS|R Nine T|F750 GS|F850 GS|F900 R|F900 XR`],
+["BMW","super",`K1600 GTL|R1200RT|R1250RT|R1200GS|R1250GS|K1600B|M1000RR|HP4 Race|S1000XR|S1000RR`],
+
+["Ducati","large",`Scrambler Series`],
+["Ducati","xlarge",`Strike Fighter SP|Monster|Hiper Motard|Multistrada`],
+["Ducati","super",`SBK 848|SBK 1098|SBK 1198|Diavel|Panigale`],
+
+["Cleveland","medium",`Ace Scrambler|Ace Deluxe`],
+["Cleveland","large",`Ace 250 Scrambler|Ace 400 Scrambler|Ace 400 Cafe|Heist|Misfit`],
+
+["Harley Davidson","xlarge",`Soft Tail|Street Bob|Fat Bob|Fat Boy|Breakout|Switchback|Wide Glide|Super Glide|Low Rider|Pan America|Iron 883|Iron 1200|Sportster|Nightster / Nighster Special|Dyna|X-440`],
+["Harley Davidson","super",`Street Glide|Road Glide|Road King|Ultra Limited|Heritage Classic|Pan America 1250 Special|V-Rod/ Noght Rod|CVO Limited|Electra Police`],
+
+["Moto Guzzi","xlarge",`New V7 Stone Centennial Livery|V85 TT Centennial Livery|New V7 Stone|V7 III Racer|V85 TT Travel`],
+
+["Peugeot","small",`Speedfight 125`],
+["Peugeot","medium",`Django 150|City Star 200i`],
+["Peugeot","large",`Metropolis 400i`],
+
+["Viar","small",`Cross X 70 Mini Trail|Cross X 100 Mini Trail|Star NX|Q1|Akasha|Uno|Panama|Orion|Caraka|NX`],
+["Viar","medium",`Cross X150|Razor 100SP|Razor 150 UT`],
+["Viar","large",`Razor 200 RZM|Vortex 250`],
+["Viar","xlarge",`Karya Series`],
+
+["Minerva","small",`Sachs Madass`],
+["Minerva","large",`All Type (exlude Sachs Madass)`],
+
+["Bajaj","medium",`All Type without - wing (naked) Pulsar`],
+["Bajaj","large",`All Type Wing`],
+
+["Aprilia","medium",`Shiver 900|SR-GT 200`],
+["Aprilia","large",`RSV4|Tuareg 660|RS 125|SR- GT Sport 200`],
+["Aprilia","xlarge",`Tuono V4|Tuono 660|RS-660`],
+
+["Lambretta","medium",`V200|V125|V50`],
+
+["Volta","small",`Volta Virgo|Volta 100|Volta 100 R4|Volta 100 V4|Volta 102|Volta 202|Volta 203|Volta 401`],
+["Volta","medium",`Volta Mandala`],
+["Volta","xlarge",`Volta 501 Cabin|Volta 502 Dump|Volta 503 Box`],
+
+["Keeway","medium",`Shiny 150|Versilia 150`],
+["Keeway","large",`V250 FI|SCR 250V ABS|SCR 250V NON-ABS`],
+
+["Alva","medium",`Alva One|Alva Cervo`],
+["Yadea","small",`G6 Lite|E8S Pro|T9`],
+["United","small",`T1800|MX 1200`],
+["SM Sport","large",`V16|SM3 400`],
+["BRP Can-Am","super",`Spyder`],
+["DKW","medium",`Hummel`],
+
+["Motor Listrik","small",`Gesit|Niu|BF Goodrich V7|Davigo Dragon|Goda Lion`],
+["Motor Listrik","medium",`Volta Mandala|Polytron FOX R`],
+["Segway","small",`E110L`],
+
+["Scomadi","medium",`Turismo Technica 200i (TT200i)|Urban series|Adventure Series|Technica 125i|Turismo Technica 125i (TT125i)`],
+
+["MV Agusta Rivale","large",`Brutale 675`],
+["MV Agusta Rivale","xlarge",`Dragster 800|Brutale 800`],
+
+["Husqvarna","large",`Svartpilen 250|Norden|Vitpilen 701`],
+
+["CF Moto","medium",`Papio XO-1`],
+["CF Moto","large",`Zeeho AE8|Zeeho AE8 S+|250 CL-X|650MT|250SR`],
+["CF Moto","xlarge",`800 MT|450 SR|450 MT`],
+["CF Moto","super",`1250 TR-G|CF1000SU-D|CF800SZ-2|CForce 110|CForce 400AU-L|CForce 600AU-3L`],
+
+["Greentech","small",`GT Aero|GT Hurricane|GT Meta|GT Ranger|GT Scood|GT Classic|GT Unity|GT Sporty`],
+["Greentech","medium",`GT VP`],
+
+["Selis","small",`Agats|E-Max|Go Plus|Nero Scuto|Sepeda Listrik`],
+["Selis","super",`Bromo|New Ballis`],
+
+["Energica","large",`Energica Eva Ribele|Energica Ego|Energica Eva Esseesse9`],
+["Energica","xlarge",`Energica ZBT`],
+
+["Royal Alloy","medium",`GP200S|Tigara Grande 150|GP 150`],
+["W Draco","large",`Draco 250 i`],
+["Smoot","small",`Tempur`],
+["Smoot","medium",`Zuzu`],
+
+["SYM","medium",`Jet 14|Tuscany 150`],
+["SYM","large",`Cruisym 300i|Cruisym 400i|Joyride 200i|GTS 2501`],
+["SYM","xlarge",`Maxsym TL 500`],
+
+["Uwinfly","small",`BW|N9|GT|LN/Love`],
+["Uwinfly","medium",`T3|T5|X6|Lamborghini`],
+
+["Kymco","small",`GP 125|Jetmatic 125VVV|Jet SR 125|Free LX`],
+["Kymco","medium",`Racing King 150i|New Like 150i`],
+["Kymco","large",`K-XCT 200i|Downtown 250i|X-Town 250i`],
+["Kymco","xlarge",`MXU 150|MXU 250`],
+["Kymco","super",`UXV 450i`],
+
+["TVS","small",`Max 125|Dazz|Neo XR|Rockz`],
+["TVS","medium",`Apache|Callisto`],
+["TVS","large",`Ronin 225`],
+
+["Ural","super",`M72 Sespan`],
+["Super Soco","medium",`TS Series|TC Series|CT Series|VS3|TSX|CPX Series`],
+["Sanex","small",`QJ 50|QJ 55`],
+["WMoto","medium",`Greta`]
+];
+
+const catalogRows = catalog.flatMap(([brand,size,models]) =>
+  models.split("|").map(model => ({brand,size,model}))
+);
+
+const rupiah=n=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(n);
+function renderPrice(size){
+ const p=prices[size];
+ return `<div class="pricegrid">
+ <div class="priceitem"><span>Premium Wash</span><b>${rupiah(p.premium)}</b></div>
+ <div class="priceitem"><span>Glossin Aja</span><b>${rupiah(p.glossAja)}</b></div>
+ <div class="priceitem"><span>Glossin Pro</span><b>${rupiah(p.glossPro)}</b></div>
+ <div class="priceitem"><span>Detailin Pro</span><b>${rupiah(p.detailin)}</b></div>
+ <div class="priceitem"><span>NanoShine</span><b>${rupiah(p.nano)}</b></div>
+ <div class="priceitem"><span>NanoShine Express</span><b>${rupiah(p.nanoExpress)}</b></div>
+ <div class="priceitem"><span>Detailing Doff</span><b>${rupiah(p.doff)}</b></div>
+ <div class="priceitem"><span>Cuci Rangka Pro</span><b>${rupiah(p.frame)}</b></div>
+ </div>`;
+}
+const priceTable=document.getElementById("priceTable");
+function showPrice(size){
+ const p=prices[size];
+ priceTable.innerHTML=`<h3>${sizeNames[size]} Motorcycle</h3>${renderPrice(size)}`;
+ document.querySelectorAll('.size-btn').forEach(btn=>btn.classList.toggle('active',btn.dataset.size===size));
+}
+document.querySelectorAll('.size-btn').forEach(btn=>btn.addEventListener('click',()=>showPrice(btn.dataset.size)));
+showPrice('small');
+
+const search=document.getElementById("search"), results=document.getElementById("results");
+search.addEventListener("input",()=>{
+ const q=search.value.trim().toLowerCase();
+ if(q.length<2){results.innerHTML='<p class="note">Ketik minimal 2 karakter untuk mencari.</p>';return}
+ const hits=catalogRows.filter(x=>(x.model+" "+x.brand).toLowerCase().includes(q)).slice(0,30);
+ if(!hits.length){results.innerHTML='<div class="result"><strong>Motor tidak ditemukan.</strong><div class="note">Coba ketik nama model lain.</div></div>';return}
+ results.innerHTML=hits.map(x=>`<div class="result"><strong>${x.model}</strong><span class="pill">${x.brand}</span><span class="pill">${sizeNames[x.size]}</span>${renderPrice(x.size)}</div>`).join("");
+});
+</script>
+
+</body>
+</html>
