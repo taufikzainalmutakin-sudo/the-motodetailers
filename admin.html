@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#0757d9"><title>Admin — THE MOTODETAILERS</title>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f4f7ff;color:#111827;min-height:100vh;display:flex;align-items:center;justify-content:center}.wrap{width:100%;padding:20px}.login{max-width:520px;margin:auto;background:#fff;padding:30px;border-radius:24px;box-shadow:0 12px 40px #00000012}.pill{display:inline-block;padding:7px 12px;border-radius:999px;background:#eaf1ff;color:#0757d9;font-weight:900;font-size:13px}.login h1{font-size:42px;line-height:1.05;margin:16px 0 10px}.muted{color:#6b7280;line-height:1.5}.status{padding:11px 13px;border-radius:11px;background:#eff6ff;color:#1d4ed8;font-size:14px;margin:18px 0}.status.error{background:#fef2f2;color:#b91c1c}.btn{width:100%;border:0;border-radius:12px;padding:14px;margin-top:18px;font-weight:900;font-size:16px;cursor:pointer;background:#0757d9;color:#fff}.btn:disabled{opacity:.65;cursor:wait}.google{background:#fff;color:#111827;border:1px solid #dbe2ef}.google:hover{background:#f8fafc}.note{margin-top:16px;font-size:12px;color:#6b7280}.divider{display:flex;align-items:center;gap:10px;margin:18px 0;color:#9ca3af;font-size:12px}.divider:before,.divider:after{content:'';height:1px;background:#e5e7eb;flex:1}.spinner{display:inline-block;width:14px;height:14px;border:2px solid #fff6;border-top-color:#fff;border-radius:50%;vertical-align:-2px;margin-right:7px;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}@media(max-width:600px){.wrap{padding:12px}.login{padding:24px 20px}.login h1{font-size:34px}}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f4f7ff;color:#111827;min-height:100vh;display:flex;align-items:center;justify-content:center}.wrap{width:100%;padding:20px}.login{max-width:520px;margin:auto;background:#fff;padding:30px;border-radius:24px;box-shadow:0 12px 40px #00000012}.pill{display:inline-block;padding:7px 12px;border-radius:999px;background:#eaf1ff;color:#0757d9;font-weight:900;font-size:13px}.login h1{font-size:42px;line-height:1.05;margin:16px 0 10px}.muted{color:#6b7280;line-height:1.5}.status{padding:11px 13px;border-radius:11px;background:#eff6ff;color:#1d4ed8;font-size:14px;margin:18px 0}.status.error{background:#fef2f2;color:#b91c1c}.btn{width:100%;border:0;border-radius:12px;padding:14px;margin-top:18px;font-weight:900;font-size:16px;cursor:pointer;background:#0757d9;color:#fff}.btn:disabled{opacity:.65;cursor:wait}.secondary{background:#fff;color:#0757d9;border:1px solid #dbe2ef}.input{width:100%;padding:14px;border:1px solid #dbe2ef;border-radius:12px;font:inherit;margin-top:7px}.field{margin-top:14px}.label{font-weight:800;font-size:14px}.note{margin-top:16px;font-size:12px;color:#6b7280}.divider{display:flex;align-items:center;gap:10px;margin:20px 0;color:#9ca3af;font-size:12px}.divider:before,.divider:after{content:'';height:1px;background:#e5e7eb;flex:1}.spinner{display:inline-block;width:14px;height:14px;border:2px solid #fff6;border-top-color:#fff;border-radius:50%;vertical-align:-2px;margin-right:7px;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}@media(max-width:600px){.wrap{padding:12px}.login{padding:24px 20px}.login h1{font-size:34px}}
 </style>
 </head>
 <body>
@@ -12,9 +12,15 @@
   <span class="pill">ADMIN</span>
   <h1>THE MOTODETAILERS</h1>
   <p class="muted">Masuk ke dashboard admin untuk mengelola booking, layanan, harga, katalog motor dan pengaturan website.</p>
-  <div id="status" class="status">Login admin menggunakan akun Google yang sudah terdaftar.</div>
-  <button id="login" class="btn google" type="button">Masuk dengan Google</button>
-  <div class="note">Gunakan akun Google admin: <strong>taufikzainalmutakin@gmail.com</strong></div>
+  <div id="status" class="status">Login admin menggunakan email dan password.</div>
+
+  <div class="field"><div class="label">Email Admin</div><input id="email" class="input" type="email" value="taufikzainalmutakin@gmail.com" readonly autocomplete="username"></div>
+  <div class="field"><div class="label">Password</div><input id="password" class="input" type="password" autocomplete="current-password" placeholder="Masukkan password admin"></div>
+  <button id="login" class="btn" type="button">Masuk ke Admin</button>
+
+  <div class="divider">atau</div>
+  <button id="setup" class="btn secondary" type="button">Buat / Reset Password Admin</button>
+  <div class="note">Kalau belum pernah punya password, tekan tombol di atas. Link pengaturan password akan dikirim ke <strong>taufikzainalmutakin@gmail.com</strong>.</div>
 </div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -22,21 +28,35 @@ const SUPABASE_URL='https://nbsmkxarkpesjiftmbwm.supabase.co';
 const SUPABASE_KEY='sb_publishable_dMXeVPXD_oU5NrdV2-sSew_CZxB5lFI';
 const ADMIN_EMAIL='taufikzainalmutakin@gmail.com';
 const DASHBOARD_URL='./admin-dashboard.html';
+const RESET_URL=new URL('./admin-set-password.html',window.location.href).href;
 const {createClient}=supabase;const db=createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
 function setStatus(text,error=false){$('status').textContent=text;$('status').className='status'+(error?' error':'')}
 async function checkSession(){
   const {data:{user}}=await db.auth.getUser();
   if(!user)return;
-  if((user.email||'').toLowerCase()!==ADMIN_EMAIL.toLowerCase()){await db.auth.signOut();return setStatus('Akun Google ini bukan akun admin.',true)}
+  if((user.email||'').toLowerCase()!==ADMIN_EMAIL.toLowerCase()){await db.auth.signOut();return setStatus('Akun ini bukan akun admin.',true)}
   const {data:profile}=await db.from('profiles').select('role').eq('id',user.id).maybeSingle();
   if(profile?.role==='admin')location.replace(DASHBOARD_URL);
 }
 $('login').onclick=async()=>{
-  $('login').disabled=true;$('login').innerHTML='<span class="spinner"></span>Membuka Google...';setStatus('Mengarahkan ke login Google...');
-  const redirectTo=new URL(DASHBOARD_URL,window.location.href).href;
-  const {error}=await db.auth.signInWithOAuth({provider:'google',options:{redirectTo,queryParams:{access_type:'offline',prompt:'select_account'}}});
-  if(error){$('login').disabled=false;$('login').textContent='Masuk dengan Google';setStatus(error.message||'Login Google gagal. Coba lagi.',true)}
+  const email=ADMIN_EMAIL,password=$('password').value;
+  if(!password)return setStatus('Masukkan password admin.',true);
+  $('login').disabled=true;$('login').innerHTML='<span class="spinner"></span>Memeriksa...';setStatus('Memeriksa login admin...');
+  const {data,error}=await db.auth.signInWithPassword({email,password});
+  if(error){$('login').disabled=false;$('login').textContent='Masuk ke Admin';return setStatus(error.message||'Login gagal.',true)}
+  if((data.user?.email||'').toLowerCase()!==ADMIN_EMAIL.toLowerCase()){await db.auth.signOut();$('login').disabled=false;$('login').textContent='Masuk ke Admin';return setStatus('Akun ini bukan akun admin.',true)}
+  const {data:profile}=await db.from('profiles').select('role').eq('id',data.user.id).maybeSingle();
+  if(profile?.role!=='admin'){await db.auth.signOut();$('login').disabled=false;$('login').textContent='Masuk ke Admin';return setStatus('Akun admin belum memiliki role admin.',true)}
+  location.replace(DASHBOARD_URL);
+};
+$('password').addEventListener('keydown',e=>{if(e.key==='Enter')$('login').click()});
+$('setup').onclick=async()=>{
+  $('setup').disabled=true;$('setup').textContent='Mengirim link...';setStatus('Mengirim link untuk membuat/reset password...');
+  const {error}=await db.auth.resetPasswordForEmail(ADMIN_EMAIL,{redirectTo:RESET_URL});
+  $('setup').disabled=false;$('setup').textContent='Buat / Reset Password Admin';
+  if(error)return setStatus(error.message||'Gagal mengirim link reset password.',true);
+  setStatus('Link pengaturan password sudah dikirim. Buka email dari Supabase lalu ikuti linknya.');
 };
 checkSession();
 </script>
