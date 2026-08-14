@@ -1,305 +1,49 @@
 (() => {
   const SUPABASE_URL = 'https://nbsmkxarkpesjiftmbwm.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_dMXeVPXD_oU5NrdV2-sSew_CZxB5lFI';
-  const WA_NUMBER = '6285157597544';
+  const DEFAULT_WA = '6285157597544';
 
-  const esc = value => String(value ?? '')
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/\"/g, '&quot;').replace(/'/g, '&#039;');
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  const rupiah = v => new Intl.NumberFormat('id-ID', {style:'currency', currency:'IDR', maximumFractionDigits:0}).format(Number(v)||0);
 
-  const rupiah = value => new Intl.NumberFormat('id-ID', {
-    style: 'currency', currency: 'IDR', maximumFractionDigits: 0
-  }).format(Number(value) || 0);
+  let db, services=[], sizes=[], motors=[], prices=[], waNumber=DEFAULT_WA;
+  let selectedMotor=null, selectedService=null, selectedSize=null, selectedPrice=null;
 
-  function addStyles() {
-    if (document.getElementById('tmd-booking-v2-styles')) return;
-    const style = document.createElement('style');
-    style.id = 'tmd-booking-v2-styles';
-    style.textContent = `
-      .tmd2-modal{position:fixed;inset:0;background:rgba(15,23,42,.68);display:none;align-items:flex-end;justify-content:center;padding:12px;z-index:99999}
-      .tmd2-modal.open{display:flex}
-      .tmd2-box{width:min(680px,100%);max-height:94vh;overflow:auto;background:#fff;border-radius:22px;padding:20px;box-shadow:0 20px 70px #0006}
-      .tmd2-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:5px}
-      .tmd2-head h2{margin:0;color:#111827;font-size:22px}.tmd2-close{border:0;background:#eef2f7;border-radius:10px;width:40px;height:40px;font-size:22px;cursor:pointer}
-      .tmd2-step{margin:16px 0 0}.tmd2-step-title{font-size:14px;font-weight:900;color:#0757d9;margin-bottom:7px}
-      .tmd2-field{margin:0 0 14px}.tmd2-field label{display:block;font-size:13px;font-weight:800;color:#374151;margin-bottom:6px}
-      .tmd2-field input,.tmd2-field select,.tmd2-field textarea{width:100%;padding:12px;border:1px solid #dbe2ef;border-radius:11px;font:inherit;background:#fff;outline:none}
-      .tmd2-field input:focus,.tmd2-field select:focus,.tmd2-field textarea:focus{border-color:#0757d9;box-shadow:0 0 0 3px #0757d91a}
-      .tmd2-help{font-size:12px;color:#6b7280;line-height:1.5;margin-top:5px}
-      .tmd2-results{display:grid;gap:9px;margin-top:9px;max-height:270px;overflow:auto}
-      .tmd2-result{border:1px solid #e5e7eb;border-radius:14px;padding:12px;cursor:pointer;background:#fff}
-      .tmd2-result:hover{border-color:#0757d9;background:#f8fbff}.tmd2-result.selected{border:2px solid #0757d9;background:#eff6ff}
-      .tmd2-result-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.tmd2-result-name{font-weight:900;color:#111827}.tmd2-pills{display:flex;gap:5px;flex-wrap:wrap}.tmd2-pill{display:inline-block;background:#eaf1ff;color:#0757d9;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:800}
-      .tmd2-mini-prices{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:9px}.tmd2-mini-price{display:flex;justify-content:space-between;gap:6px;border-top:1px solid #edf0f5;padding-top:5px;font-size:11px}.tmd2-mini-price b{color:#0757d9}
-      .tmd2-selected{border:1px solid #bfdbfe;background:#eff6ff;border-radius:15px;padding:14px;margin:8px 0 14px}.tmd2-selected h3{margin:0 0 5px;color:#0757d9}.tmd2-price{font-size:20px;font-weight:900;color:#0757d9;margin-top:8px}
-      .tmd2-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.tmd2-submit{width:100%;border:0;background:#16a34a;color:#fff;padding:14px;border-radius:12px;font-weight:900;font-size:15px;cursor:pointer}.tmd2-submit:disabled{opacity:.6;cursor:not-allowed}
-      .tmd2-error{display:none;background:#fef2f2;color:#b91c1c;border-radius:10px;padding:10px 12px;font-size:13px;margin:10px 0}.tmd2-error.show{display:block}
-      .tmd2-loading{padding:12px;border-radius:12px;background:#eff6ff;color:#1d4ed8;font-size:13px}
-      @media(max-width:520px){.tmd2-grid{grid-template-columns:1fr}.tmd2-modal{padding:0}.tmd2-box{border-radius:22px 22px 0 0}.tmd2-mini-prices{grid-template-columns:1fr}}
-    `;
+  function loadSdk(){
+    if(window.supabase?.createClient) return Promise.resolve();
+    return new Promise((resolve,reject)=>{
+      const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'; s.async=true;
+      s.onload=()=>window.supabase?.createClient?resolve():reject(new Error('Supabase SDK tidak tersedia.'));
+      s.onerror=()=>reject(new Error('Gagal memuat Supabase.')); document.head.appendChild(s);
+    });
+  }
+  function findPrice(serviceId,sizeId){const p=prices.find(x=>x.service_id===serviceId&&x.motor_size_id===sizeId&&x.active!==false);return p?Number(p.price):null;}
+  function renderPublicServices(){
+    const box=document.querySelector('.services'); if(!box)return;
+    box.innerHTML=services.length?services.map(s=>{const body=`<h3>${esc(s.name)}</h3><p>${esc(s.description||'')}</p>`;return s.result_url?`<a class="service service-link" href="${esc(s.result_url)}" target="_blank" rel="noopener noreferrer">${body}</a>`:`<div class="service">${body}</div>`}).join(''):'<div class="service"><h3>Belum ada layanan aktif</h3><p>Silakan cek kembali nanti.</p></div>';
+  }
+  function renderPublicPrices(){
+    const section=document.getElementById('pricelist'),buttons=section?.querySelector('.size-buttons'),table=document.getElementById('priceTable'); if(!buttons||!table)return;
+    buttons.innerHTML=sizes.map((s,i)=>`<button class="size-btn${i===0?' active':''}" data-size-id="${esc(s.id)}">${esc(s.name)}</button>`).join('');
+    const show=sizeId=>{const size=sizes.find(s=>s.id===sizeId)||sizes[0];if(!size){table.innerHTML='<p class="note">Belum ada size motor.</p>';return}const rows=services.map(s=>{const p=findPrice(s.id,size.id);return `<div class="priceitem"><span>${esc(s.name)}</span><b>${p==null?'Belum tersedia':rupiah(p)}</b></div>`}).join('');table.innerHTML=`<h3>${esc(size.name)} Motorcycle</h3><div class="pricegrid">${rows}</div>`;buttons.querySelectorAll('.size-btn').forEach(b=>b.classList.toggle('active',b.dataset.sizeId===size.id))};
+    buttons.querySelectorAll('.size-btn').forEach(b=>b.addEventListener('click',()=>show(b.dataset.sizeId))); show(sizes[0]?.id);
+  }
+  function addBookingStyles(){
+    if(document.getElementById('tmd-booking-v3-styles'))return;
+    const style=document.createElement('style');style.id='tmd-booking-v3-styles';style.textContent=`
+      .tmd3-modal{position:fixed;inset:0;background:rgba(15,23,42,.68);display:none;align-items:flex-end;justify-content:center;padding:12px;z-index:99999}.tmd3-modal.open{display:flex}.tmd3-box{width:min(680px,100%);max-height:94vh;overflow:auto;background:#fff;border-radius:22px;padding:20px;box-shadow:0 20px 70px #0006}.tmd3-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.tmd3-head h2{margin:0;color:#111827;font-size:22px}.tmd3-close{border:0;background:#eef2f7;border-radius:10px;width:40px;height:40px;font-size:22px;cursor:pointer}.tmd3-help{font-size:12px;color:#6b7280;line-height:1.5;margin:6px 0}.tmd3-step{margin-top:16px}.tmd3-title{font-size:14px;font-weight:900;color:#0757d9;margin-bottom:7px}.tmd3-field{margin-bottom:13px}.tmd3-field input,.tmd3-field select,.tmd3-field textarea{width:100%;padding:12px;border:1px solid #dbe2ef;border-radius:11px;font:inherit;background:#fff}.tmd3-results{display:grid;gap:8px;margin-top:8px;max-height:260px;overflow:auto}.tmd3-result{border:1px solid #e5e7eb;border-radius:14px;padding:12px;cursor:pointer;background:#fff}.tmd3-result:hover,.tmd3-result.selected{border-color:#0757d9;background:#eff6ff}.tmd3-name{font-weight:900}.tmd3-pills{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}.tmd3-pill{display:inline-block;background:#eaf1ff;color:#0757d9;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:800}.tmd3-mini{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:8px}.tmd3-mini div{font-size:11px;border-top:1px solid #edf0f5;padding-top:5px;display:flex;justify-content:space-between;gap:5px}.tmd3-mini b{color:#0757d9}.tmd3-selected{border:1px solid #bfdbfe;background:#eff6ff;border-radius:15px;padding:14px}.tmd3-price{font-size:20px;font-weight:900;color:#0757d9;margin-top:7px}.tmd3-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.tmd3-submit{width:100%;border:0;background:#16a34a;color:#fff;padding:14px;border-radius:12px;font-weight:900;cursor:pointer}.tmd3-submit:disabled{opacity:.6}.tmd3-error{display:none;background:#fef2f2;color:#b91c1c;border-radius:10px;padding:10px;margin-top:10px;font-size:13px}.tmd3-error.show{display:block}@media(max-width:520px){.tmd3-grid{grid-template-columns:1fr}.tmd3-modal{padding:0}.tmd3-box{border-radius:22px 22px 0 0}.tmd3-mini{grid-template-columns:1fr}}`;
     document.head.appendChild(style);
   }
-
-  function modalMarkup() {
-    return `
-      <div id="tmdBookingModalV2" class="tmd2-modal" aria-hidden="true">
-        <div class="tmd2-box" role="dialog" aria-modal="true" aria-labelledby="tmd2Title">
-          <div class="tmd2-head"><h2 id="tmd2Title">Booking Treatment</h2><button id="tmd2Close" class="tmd2-close" type="button" aria-label="Tutup">×</button></div>
-          <div class="tmd2-help">Urutan booking: nama → cari tipe motor → pilih treatment → tanggal & jam → nomor HP → kondisi motor.</div>
-          <div id="tmd2Error" class="tmd2-error"></div>
-          <form id="tmd2Form">
-            <div class="tmd2-step"><div class="tmd2-step-title">1. Nama customer</div><div class="tmd2-field"><input id="tmd2Name" required maxlength="80" autocomplete="name" placeholder="Nama customer"></div></div>
-            <div class="tmd2-step"><div class="tmd2-step-title">2. Cari tipe motor</div><div class="tmd2-field"><input id="tmd2MotorSearch" required maxlength="100" autocomplete="off" placeholder="Ketik contoh: Beat, Vario 160, NMAX..."><div class="tmd2-help">Ketik minimal 2 karakter. Pilih motor dari hasil pencarian untuk melihat size dan pricelist treatment.</div><div id="tmd2Results" class="tmd2-results"></div></div></div>
-            <div id="tmd2TreatmentStep" class="tmd2-step" hidden><div class="tmd2-step-title">3. Pilih treatment</div><div class="tmd2-field"><select id="tmd2Treatment" required><option value="">Pilih treatment...</option></select></div><div id="tmd2Selected" class="tmd2-selected"><div class="tmd2-help">Pilih treatment untuk melihat detail harga.</div></div></div>
-            <div id="tmd2ScheduleStep" class="tmd2-step" hidden><div class="tmd2-step-title">4. Waktu & tanggal booking</div><div class="tmd2-grid"><div class="tmd2-field"><label for="tmd2Date">Tanggal kedatangan</label><input id="tmd2Date" type="date" required></div><div class="tmd2-field"><label for="tmd2Time">Jam kedatangan</label><select id="tmd2Time" required><option value="">Pilih jam...</option></select></div></div></div>
-            <div id="tmd2ContactStep" class="tmd2-step" hidden><div class="tmd2-step-title">5. No. HP / WhatsApp</div><div class="tmd2-field"><input id="tmd2Phone" type="tel" required maxlength="30" autocomplete="tel" placeholder="08xxxxxxxxxx"></div></div>
-            <div id="tmd2NotesStep" class="tmd2-step" hidden><div class="tmd2-step-title">6. Deskripsi kondisi motor <span style="font-weight:400;color:#6b7280">(opsional)</span></div><div class="tmd2-field"><textarea id="tmd2Notes" rows="4" maxlength="1000" placeholder="Contoh: body banyak swirl, ada baret di tangki, dll."></textarea></div></div>
-            <button id="tmd2Submit" class="tmd2-submit" type="submit" hidden>Lanjut Booking via WhatsApp</button>
-          </form>
-        </div>
-      </div>`;
-  }
-
-  let db;
-  let services = [], sizes = [], motors = [], prices = [];
-  let selectedMotor = null, selectedPrice = null, selectedService = null, selectedSize = null;
-
-  function slots() {
-    const out = [];
-    for (let h = 9; h <= 18; h++) for (const m of [0,30]) {
-      if (h === 18 && m === 30) continue;
-      out.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
-    }
-    return out;
-  }
-
-  function todayISO() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  }
-
-  function setError(message) {
-    const el = document.getElementById('tmd2Error');
-    if (!el) return;
-    el.textContent = message || '';
-    el.classList.toggle('show', !!message);
-  }
-
-  function showStep(id, show) {
-    const el = document.getElementById(id);
-    if (el) el.hidden = !show;
-  }
-
-  function servicePrice(serviceId, sizeId) {
-    const row = prices.find(p => p.service_id === serviceId && p.motor_size_id === sizeId && p.active !== false);
-    return row ? Number(row.price) : null;
-  }
-
-  function resetAfterMotorSearch() {
-    selectedMotor = null; selectedSize = null; selectedService = null; selectedPrice = null;
-    showStep('tmd2TreatmentStep', false); showStep('tmd2ScheduleStep', false); showStep('tmd2ContactStep', false); showStep('tmd2NotesStep', false);
-    const submit = document.getElementById('tmd2Submit'); if (submit) submit.hidden = true;
-  }
-
-  function normalize(value) {
-    return String(value ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
-  }
-
-  function mergeStaticCatalog() {
-    if (typeof catalogRows === 'undefined' || !Array.isArray(catalogRows) || !Array.isArray(sizes)) return;
-    const sizeIdByKey = {};
-    const sizeNamesFromPage = typeof sizeNames !== 'undefined' ? sizeNames : {};
-    Object.entries(sizeNamesFromPage).forEach(([key,name]) => {
-      const found = sizes.find(s => normalize(s.name) === normalize(name));
-      if (found) sizeIdByKey[key] = found.id;
-    });
-    const existing = new Set(motors.map(m => `${normalize(m.brand)}|${normalize(m.model)}`));
-    catalogRows.forEach(row => {
-      const key = `${normalize(row.brand)}|${normalize(row.model)}`;
-      if (existing.has(key)) return;
-      const motorSizeId = sizeIdByKey[row.size];
-      if (!motorSizeId) return;
-      motors.push({
-        id: `static-${normalize(row.brand)}-${normalize(row.model)}-${row.size}`,
-        brand: row.brand,
-        model: row.model,
-        motor_size_id: motorSizeId,
-        active: true,
-        sort_order: 999999,
-        __staticCatalog: true
-      });
-      existing.add(key);
-    });
-  }
-
-  function renderMotorResults(query) {
-    const box = document.getElementById('tmd2Results');
-    if (!box) return;
-    const q = query.trim().toLowerCase();
-    if (q.length < 2) { box.innerHTML = ''; return; }
-    const nq = normalize(q);
-    const hits = motors.filter(m => {
-      const brand = normalize(m.brand);
-      const model = normalize(m.model);
-      return brand.includes(nq) || model.includes(nq) || `${brand}${model}`.includes(nq);
-    }).sort((a,b) => {
-      const aq = normalize(`${a.brand} ${a.model}`);
-      const bq = normalize(`${b.brand} ${b.model}`);
-      const ar = aq.startsWith(nq) ? 0 : (aq.includes(nq) ? 1 : 2);
-      const br = bq.startsWith(nq) ? 0 : (bq.includes(nq) ? 1 : 2);
-      return ar - br || aq.localeCompare(bq);
-    }).slice(0, 30);
-    if (!hits.length) { box.innerHTML = '<div class="tmd2-help">Motor tidak ditemukan di katalog. Coba ketik nama lain.</div>'; return; }
-    box.innerHTML = hits.map(m => {
-      const size = sizes.find(s => s.id === m.motor_size_id);
-      const priceItems = prices.filter(p => p.motor_size_id === m.motor_size_id && p.active !== false);
-      return `<div class="tmd2-result" data-motor-id="${esc(m.id)}"><div class="tmd2-result-top"><div><div class="tmd2-result-name">${esc(m.brand)} ${esc(m.model)}</div><div class="tmd2-pills"><span class="tmd2-pill">Size: ${esc(size?.name || 'Belum ditentukan')}</span></div></div></div><div class="tmd2-mini-prices">${services.map(s => { const p = priceItems.find(x => x.service_id === s.id); return `<div class="tmd2-mini-price"><span>${esc(s.name)}</span><b>${p ? rupiah(p.price) : '-'}</b></div>`; }).join('')}</div></div>`;
-    }).join('');
-    box.querySelectorAll('.tmd2-result').forEach(el => el.addEventListener('click', () => selectMotor(el.dataset.motorId)));
-  }
-
-  function selectMotor(id) {
-    selectedMotor = motors.find(m => m.id === id) || null;
-    selectedSize = selectedMotor ? sizes.find(s => s.id === selectedMotor.motor_size_id) || null : null;
-    selectedService = null; selectedPrice = null;
-    const search = document.getElementById('tmd2MotorSearch');
-    const treatment = document.getElementById('tmd2Treatment');
-    const selected = document.getElementById('tmd2Selected');
-    if (!selectedMotor || !treatment || !selected) return;
-    search.value = `${selectedMotor.brand} ${selectedMotor.model}`;
-    const options = services.map(s => {
-      const p = servicePrice(s.id, selectedMotor.motor_size_id);
-      return `<option value="${esc(s.id)}" ${p == null ? 'disabled' : ''}>${esc(s.name)} — ${p == null ? 'Harga belum tersedia' : rupiah(p)}</option>`;
-    }).join('');
-    treatment.innerHTML = '<option value="">Pilih treatment...</option>' + options;
-    selected.innerHTML = `<h3>${esc(selectedMotor.brand)} ${esc(selectedMotor.model)}</h3><div class="tmd2-pills"><span class="tmd2-pill">Size: ${esc(selectedSize?.name || '-')}</span></div><div class="tmd2-help">Sekarang pilih treatment yang kamu mau.</div>`;
-    showStep('tmd2TreatmentStep', true); showStep('tmd2ScheduleStep', false); showStep('tmd2ContactStep', false); showStep('tmd2NotesStep', false);
-    document.getElementById('tmd2Submit').hidden = true;
-    treatment.focus();
-    document.querySelectorAll('.tmd2-result').forEach(x => x.classList.toggle('selected', x.dataset.motorId === id));
-  }
-
-  function selectTreatment(id) {
-    if (!selectedMotor) return;
-    selectedService = services.find(s => s.id === id) || null;
-    selectedPrice = selectedService ? servicePrice(selectedService.id, selectedMotor.motor_size_id) : null;
-    const selected = document.getElementById('tmd2Selected');
-    if (!selected) return;
-    selected.innerHTML = `<h3>${esc(selectedService?.name || 'Treatment')}</h3><div class="tmd2-pills"><span class="tmd2-pill">Motor: ${esc(selectedMotor.brand)} ${esc(selectedMotor.model)}</span><span class="tmd2-pill">Size: ${esc(selectedSize?.name || '-')}</span></div><div class="tmd2-price">${selectedPrice == null ? 'Harga belum tersedia' : rupiah(selectedPrice)}</div>`;
-    const ready = !!(selectedService && selectedPrice != null);
-    showStep('tmd2ScheduleStep', ready); showStep('tmd2ContactStep', ready); showStep('tmd2NotesStep', ready);
-    document.getElementById('tmd2Submit').hidden = !ready;
-  }
-
-  async function submit(event) {
-    event.preventDefault(); setError('');
-    if (!selectedMotor || !selectedService || selectedPrice == null) return setError('Pilih motor dan treatment dulu.');
-    const name = document.getElementById('tmd2Name').value.trim();
-    const date = document.getElementById('tmd2Date').value;
-    const time = document.getElementById('tmd2Time').value;
-    const phone = document.getElementById('tmd2Phone').value.trim();
-    const notes = document.getElementById('tmd2Notes').value.trim();
-    if (!name || !date || !time || !phone) return setError('Lengkapi data wajib dulu.');
-    if (!/^[0-9+\s()-]{8,30}$/.test(phone)) return setError('Nomor HP/WhatsApp tidak valid.');
-    if (date < todayISO()) return setError('Tanggal booking tidak boleh lewat.');
-    const button = document.getElementById('tmd2Submit');
-    button.disabled = true; button.textContent = 'Menyimpan booking...';
-    try {
-      const payload = { customer_name:name, phone, motor_type:`${selectedMotor.brand} ${selectedMotor.model}`, service_id:selectedService.id, motor_size_id:selectedMotor.motor_size_id, appointment_date:date, appointment_time:time, dp_amount:null, notes:notes||null, dp_paid:false, status:'pending', source:'whatsapp' };
-      const { error } = await db.from('bookings').insert(payload);
-      if (error) throw error;
-      const message = [
-        'Halo THE MOTODETAILERS, saya mau booking treatment.', '',
-        `Nama: ${name}`,
-        `Tipe motor: ${selectedMotor.brand} ${selectedMotor.model}`,
-        `Size motor: ${selectedSize?.name || '-'}`,
-        `Treatment: ${selectedService.name}`,
-        `Harga: ${rupiah(selectedPrice)}`,
-        `Tanggal: ${date}`,
-        `Jam: ${time}`,
-        `No. HP: ${phone}`,
-        notes ? `Deskripsi kondisi motor: ${notes}` : ''
-      ].filter(Boolean).join('\n');
-      window.location.href = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(message)}`;
-    } catch (err) {
-      console.error('[TMD] Booking V2 error:', err);
-      setError(err?.message || 'Booking gagal disimpan. Coba lagi.');
-      button.disabled = false; button.textContent = 'Lanjut Booking via WhatsApp';
-    }
-  }
-
-  function loadSupabaseSdk() {
-    if (window.supabase?.createClient) return Promise.resolve(window.supabase);
-    return new Promise((resolve, reject) => {
-      const existing = document.querySelector('script[data-tmd-supabase-sdk]');
-      if (existing) {
-        existing.addEventListener('load', () => resolve(window.supabase));
-        existing.addEventListener('error', () => reject(new Error('Gagal memuat Supabase.')));
-        if (window.supabase?.createClient) resolve(window.supabase);
-        return;
-      }
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-      script.async = true;
-      script.dataset.tmdSupabaseSdk = '1';
-      script.onload = () => window.supabase?.createClient ? resolve(window.supabase) : reject(new Error('Supabase SDK tidak tersedia.'));
-      script.onerror = () => reject(new Error('Gagal memuat Supabase SDK.'));
-      document.head.appendChild(script);
-    });
-  }
-
-  async function init() {
-    addStyles();
-    document.getElementById('tmdBookingModal')?.remove();
-    document.getElementById('tmdBookingModalV2')?.remove();
-
-    const oldButton = document.querySelector('.booking-button');
-    if (!oldButton) { console.warn('[TMD] Tombol booking tidak ditemukan.'); return; }
-
-    const newButton = oldButton.cloneNode(true);
-    newButton.removeAttribute('target'); newButton.removeAttribute('rel'); newButton.href = '#booking';
-    oldButton.replaceWith(newButton);
-    document.body.insertAdjacentHTML('beforeend', modalMarkup());
-
-    const modal = document.getElementById('tmdBookingModalV2');
-    const close = () => { modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); };
-    const open = e => { e.preventDefault(); modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); document.getElementById('tmd2Name')?.focus(); };
-    newButton.addEventListener('click', open);
-    document.getElementById('tmd2Close').addEventListener('click', close);
-    modal.addEventListener('click', e => { if (e.target === modal) close(); });
-
-    const sdk = await loadSupabaseSdk();
-    db = sdk.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    try {
-      const [servicesRes, sizesRes, motorsRes, pricesRes] = await Promise.all([
-        db.from('services').select('id,name,active,sort_order').eq('active', true).order('sort_order'),
-        db.from('motor_sizes').select('id,name,active,sort_order').eq('active', true).order('sort_order'),
-        db.from('motor_catalog').select('id,brand,model,motor_size_id,active,sort_order').eq('active', true).order('brand').order('sort_order').limit(5000),
-        db.from('service_prices').select('id,service_id,motor_size_id,price,active').eq('active', true)
-      ]);
-      for (const r of [servicesRes,sizesRes,motorsRes,pricesRes]) if (r.error) throw r.error;
-      services = servicesRes.data || []; sizes = sizesRes.data || []; motors = motorsRes.data || []; prices = pricesRes.data || [];
-      mergeStaticCatalog();
-
-      const timeSelect = document.getElementById('tmd2Time');
-      timeSelect.innerHTML = '<option value="">Pilih jam...</option>' + slots().map(t => `<option value="${t}">${t}</option>`).join('');
-      const date = document.getElementById('tmd2Date'); date.min = todayISO(); date.value = todayISO();
-
-      document.getElementById('tmd2Form').addEventListener('submit', submit);
-      document.getElementById('tmd2MotorSearch').addEventListener('input', e => { resetAfterMotorSearch(); renderMotorResults(e.target.value); });
-      document.getElementById('tmd2Treatment').addEventListener('change', e => selectTreatment(e.target.value));
-    } catch (err) {
-      console.error('[TMD] Booking data error:', err);
-      const box = document.getElementById('tmd2Results');
-      if (box) box.innerHTML = `<div class="tmd2-error show">Booking belum bisa memuat katalog/harga: ${esc(err?.message || 'error')}</div>`;
-    }
-  }
-
-  function start() {
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(() => init().catch(e => console.error('[TMD] Booking init error:', e)), 150), {once:true});
-    else setTimeout(() => init().catch(e => console.error('[TMD] Booking init error:', e)), 150);
-  }
-
-  start();
+  function modalMarkup(){return `<div id="tmdBookingModalV3" class="tmd3-modal" aria-hidden="true"><div class="tmd3-box" role="dialog" aria-modal="true"><div class="tmd3-head"><h2>Booking Treatment</h2><button id="tmd3Close" class="tmd3-close" type="button">×</button></div><div class="tmd3-help">Urutan: nama → cari tipe motor → pilih treatment → tanggal & jam → nomor HP → kondisi motor.</div><div id="tmd3Error" class="tmd3-error"></div><form id="tmd3Form"><div class="tmd3-step"><div class="tmd3-title">1. Nama customer</div><div class="tmd3-field"><input id="tmd3Name" required maxlength="80" placeholder="Nama customer"></div></div><div class="tmd3-step"><div class="tmd3-title">2. Cari tipe motor</div><div class="tmd3-field"><input id="tmd3Motor" required autocomplete="off" maxlength="100" placeholder="Ketik contoh: Beat, Vario 160, NMAX..."><div class="tmd3-help">Ketik minimal 2 karakter. Data diambil langsung dari katalog motor aktif.</div><div id="tmd3Results" class="tmd3-results"></div></div></div><div id="tmd3TreatmentStep" class="tmd3-step" hidden><div class="tmd3-title">3. Pilih treatment</div><div class="tmd3-field"><select id="tmd3Treatment" required><option value="">Pilih treatment...</option></select></div><div id="tmd3Selected" class="tmd3-selected"></div></div><div id="tmd3ScheduleStep" class="tmd3-step" hidden><div class="tmd3-title">4. Waktu & tanggal booking</div><div class="tmd3-grid"><div class="tmd3-field"><label>Tanggal kedatangan</label><input id="tmd3Date" type="date" required></div><div class="tmd3-field"><label>Jam kedatangan</label><select id="tmd3Time" required><option value="">Pilih jam...</option></select></div></div></div><div id="tmd3ContactStep" class="tmd3-step" hidden><div class="tmd3-title">5. No. HP / WhatsApp</div><div class="tmd3-field"><input id="tmd3Phone" type="tel" required maxlength="30" placeholder="08xxxxxxxxxx"></div></div><div id="tmd3NotesStep" class="tmd3-step" hidden><div class="tmd3-title">6. Deskripsi kondisi motor <span style="font-weight:400;color:#6b7280">(opsional)</span></div><div class="tmd3-field"><textarea id="tmd3Notes" rows="4" maxlength="1000" placeholder="Contoh: body banyak swirl, ada baret di tangki, dll."></textarea></div></div><button id="tmd3Submit" class="tmd3-submit" type="submit" hidden>Lanjut Booking via WhatsApp</button></form></div></div>`}
+  const slots=()=>{const a=[];for(let h=9;h<=18;h++)for(const m of [0,30]){if(h===18&&m===30)continue;a.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`)}return a};
+  const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+  const step=(id,on)=>{const e=document.getElementById(id);if(e)e.hidden=!on};
+  const setError=m=>{const e=document.getElementById('tmd3Error');e.textContent=m||'';e.classList.toggle('show',!!m)};
+  function renderResults(q){const box=document.getElementById('tmd3Results');if(!box)return;q=q.trim().toLowerCase();if(q.length<2){box.innerHTML='';return}const hits=motors.filter(m=>`${m.brand} ${m.model}`.toLowerCase().includes(q)).slice(0,30);if(!hits.length){box.innerHTML='<div class="tmd3-help">Motor tidak ditemukan di katalog aktif.</div>';return}box.innerHTML=hits.map(m=>{const size=sizes.find(s=>s.id===m.motor_size_id);const rows=services.map(s=>{const p=findPrice(s.id,m.motor_size_id);return `<div><span>${esc(s.name)}</span><b>${p==null?'-':rupiah(p)}</b></div>`}).join('');return `<div class="tmd3-result" data-id="${esc(m.id)}"><div class="tmd3-name">${esc(m.brand)} ${esc(m.model)}</div><div class="tmd3-pills"><span class="tmd3-pill">Size: ${esc(size?.name||'-')}</span></div><div class="tmd3-mini">${rows}</div></div>`}).join('');box.querySelectorAll('.tmd3-result').forEach(e=>e.addEventListener('click',()=>selectMotor(e.dataset.id)))}
+  function selectMotor(id){selectedMotor=motors.find(m=>m.id===id)||null;selectedSize=selectedMotor?sizes.find(s=>s.id===selectedMotor.motor_size_id):null;selectedService=null;selectedPrice=null;if(!selectedMotor)return;document.getElementById('tmd3Motor').value=`${selectedMotor.brand} ${selectedMotor.model}`;document.getElementById('tmd3Treatment').innerHTML='<option value="">Pilih treatment...</option>'+services.map(s=>{const p=findPrice(s.id,selectedMotor.motor_size_id);return `<option value="${esc(s.id)}"${p==null?' disabled':''}>${esc(s.name)} — ${p==null?'Harga belum tersedia':rupiah(p)}</option>`}).join('');document.getElementById('tmd3Selected').innerHTML=`<b>${esc(selectedMotor.brand)} ${esc(selectedMotor.model)}</b><div class="tmd3-pills"><span class="tmd3-pill">Size: ${esc(selectedSize?.name||'-')}</span></div><div class="tmd3-help">Sekarang pilih treatment.</div>`;step('tmd3TreatmentStep',true);step('tmd3ScheduleStep',false);step('tmd3ContactStep',false);step('tmd3NotesStep',false);document.getElementById('tmd3Submit').hidden=true;document.querySelectorAll('.tmd3-result').forEach(e=>e.classList.toggle('selected',e.dataset.id===id));document.getElementById('tmd3Treatment').focus()}
+  function selectTreatment(id){selectedService=services.find(s=>s.id===id)||null;selectedPrice=selectedService&&selectedMotor?findPrice(selectedService.id,selectedMotor.motor_size_id):null;document.getElementById('tmd3Selected').innerHTML=`<b>${esc(selectedMotor?.brand||'')} ${esc(selectedMotor?.model||'')}</b><div class="tmd3-pills"><span class="tmd3-pill">Size: ${esc(selectedSize?.name||'-')}</span><span class="tmd3-pill">Treatment: ${esc(selectedService?.name||'-')}</span></div><div class="tmd3-price">${selectedPrice==null?'Harga belum tersedia':rupiah(selectedPrice)}</div>`;const ok=!!selectedService&&selectedPrice!=null;step('tmd3ScheduleStep',ok);step('tmd3ContactStep',ok);step('tmd3NotesStep',ok);document.getElementById('tmd3Submit').hidden=!ok}
+  async function submit(e){e.preventDefault();setError('');if(!selectedMotor||!selectedService||selectedPrice==null)return setError('Pilih motor dan treatment dulu.');const name=document.getElementById('tmd3Name').value.trim(),date=document.getElementById('tmd3Date').value,time=document.getElementById('tmd3Time').value,phone=document.getElementById('tmd3Phone').value.trim(),notes=document.getElementById('tmd3Notes').value.trim();if(!name||!date||!time||!phone)return setError('Lengkapi data wajib dulu.');if(!/^[0-9+\s()-]{8,30}$/.test(phone))return setError('Nomor HP/WhatsApp tidak valid.');if(date<today())return setError('Tanggal booking tidak boleh lewat.');const btn=document.getElementById('tmd3Submit');btn.disabled=true;btn.textContent='Menyimpan booking...';try{const r=await db.from('bookings').insert({customer_name:name,phone,motor_type:`${selectedMotor.brand} ${selectedMotor.model}`,service_id:selectedService.id,motor_size_id:selectedMotor.motor_size_id,appointment_date:date,appointment_time:time,dp_amount:null,notes:notes||null,dp_paid:false,status:'pending',source:'whatsapp'});if(r.error)throw r.error;const msg=['Halo THE MOTODETAILERS, saya mau booking treatment.','',`Nama: ${name}`,`Tipe motor: ${selectedMotor.brand} ${selectedMotor.model}`,`Size motor: ${selectedSize?.name||'-'}`,`Treatment: ${selectedService.name}`,`Harga: ${rupiah(selectedPrice)}`,`Tanggal: ${date}`,`Jam: ${time}`,`No. HP: ${phone}`,notes?`Deskripsi kondisi motor: ${notes}`:''].filter(Boolean).join('\n');location.href=`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`}catch(err){console.error(err);setError(err?.message||'Booking gagal disimpan.');btn.disabled=false;btn.textContent='Lanjut Booking via WhatsApp'}}
+  function initBooking(){const old=document.querySelector('.booking-button');if(!old)return;document.getElementById('tmdBookingModalV3')?.remove();addBookingStyles();old.replaceWith(old.cloneNode(true));const btn=document.querySelector('.booking-button');btn.href='#booking';btn.removeAttribute('target');btn.removeAttribute('rel');document.body.insertAdjacentHTML('beforeend',modalMarkup());const modal=document.getElementById('tmdBookingModalV3');btn.addEventListener('click',e=>{e.preventDefault();modal.classList.add('open');modal.setAttribute('aria-hidden','false');document.getElementById('tmd3Name').focus()});document.getElementById('tmd3Close').onclick=()=>modal.classList.remove('open');modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('open')});document.getElementById('tmd3Time').innerHTML='<option value="">Pilih jam...</option>'+slots().map(t=>`<option value="${t}">${t}</option>`).join('');const date=document.getElementById('tmd3Date');date.min=today();date.value=today();document.getElementById('tmd3Motor').addEventListener('input',e=>{selectedMotor=null;selectedService=null;selectedPrice=null;step('tmd3TreatmentStep',false);step('tmd3ScheduleStep',false);step('tmd3ContactStep',false);step('tmd3NotesStep',false);document.getElementById('tmd3Submit').hidden=true;renderResults(e.target.value)});document.getElementById('tmd3Treatment').addEventListener('change',e=>selectTreatment(e.target.value));document.getElementById('tmd3Form').addEventListener('submit',submit)}
+  async function init(){await loadSdk();db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);const[s,z,m,p,settings]=await Promise.all([db.from('services').select('id,name,slug,description,result_url,image_url,active,sort_order').eq('active',true).order('sort_order'),db.from('motor_sizes').select('id,name,active,sort_order').eq('active',true).order('sort_order'),db.from('motor_catalog').select('id,brand,model,motor_size_id,active,sort_order').eq('active',true).order('brand').order('sort_order').limit(5000),db.from('service_prices').select('id,service_id,motor_size_id,price,active').eq('active',true),db.from('site_settings').select('setting_key,setting_value')]);for(const r of[s,z,m,p,settings])if(r.error)throw r.error;services=s.data||[];sizes=z.data||[];motors=m.data||[];prices=p.data||[];const st=Object.fromEntries((settings.data||[]).map(x=>[x.setting_key,x.setting_value]));const wa=st.whatsapp?.url||'';const match=String(wa).match(/wa\.me\/(\d+)/);if(match)waNumber=match[1];renderPublicServices();renderPublicPrices();initBooking()}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>init().catch(e=>console.error('[TMD] public sync:',e)),{once:true});else init().catch(e=>console.error('[TMD] public sync:',e));
 })();
