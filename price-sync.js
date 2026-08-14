@@ -1,10 +1,11 @@
 (() => {
   const SUPABASE_URL = 'https://nbsmkxarkpesjiftmbwm.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_dMXeVPXD_oU5NrdV2-sSew_CZxB5lFI';
+  const WA_NUMBER = '6285157597544';
 
   const esc = value => String(value ?? '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/\"/g, '&quot;').replace(/'/g, '&#039;');
+    .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 
   const rupiah = value => new Intl.NumberFormat('id-ID', {
     style: 'currency', currency: 'IDR', maximumFractionDigits: 0
@@ -33,6 +34,7 @@
       .tmd2-selected{border:1px solid #bfdbfe;background:#eff6ff;border-radius:15px;padding:14px;margin:8px 0 14px}.tmd2-selected h3{margin:0 0 5px;color:#0757d9}.tmd2-price{font-size:20px;font-weight:900;color:#0757d9;margin-top:8px}
       .tmd2-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.tmd2-submit{width:100%;border:0;background:#16a34a;color:#fff;padding:14px;border-radius:12px;font-weight:900;font-size:15px;cursor:pointer}.tmd2-submit:disabled{opacity:.6;cursor:not-allowed}
       .tmd2-error{display:none;background:#fef2f2;color:#b91c1c;border-radius:10px;padding:10px 12px;font-size:13px;margin:10px 0}.tmd2-error.show{display:block}
+      .tmd2-loading{padding:12px;border-radius:12px;background:#eff6ff;color:#1d4ed8;font-size:13px}
       @media(max-width:520px){.tmd2-grid{grid-template-columns:1fr}.tmd2-modal{padding:0}.tmd2-box{border-radius:22px 22px 0 0}.tmd2-mini-prices{grid-template-columns:1fr}}
     `;
     document.head.appendChild(style);
@@ -59,22 +61,14 @@
   }
 
   let db;
-  let services = [];
-  let sizes = [];
-  let motors = [];
-  let prices = [];
-  let selectedMotor = null;
-  let selectedPrice = null;
-  let selectedService = null;
-  let selectedSize = null;
+  let services = [], sizes = [], motors = [], prices = [];
+  let selectedMotor = null, selectedPrice = null, selectedService = null, selectedSize = null;
 
   function slots() {
     const out = [];
-    for (let h = 9; h <= 18; h++) {
-      for (const m of [0,30]) {
-        if (h === 18 && m === 30) continue;
-        out.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
-      }
+    for (let h = 9; h <= 18; h++) for (const m of [0,30]) {
+      if (h === 18 && m === 30) continue;
+      out.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
     }
     return out;
   }
@@ -101,6 +95,12 @@
     return row ? Number(row.price) : null;
   }
 
+  function resetAfterMotorSearch() {
+    selectedMotor = null; selectedSize = null; selectedService = null; selectedPrice = null;
+    showStep('tmd2TreatmentStep', false); showStep('tmd2ScheduleStep', false); showStep('tmd2ContactStep', false); showStep('tmd2NotesStep', false);
+    const submit = document.getElementById('tmd2Submit'); if (submit) submit.hidden = true;
+  }
+
   function renderMotorResults(query) {
     const box = document.getElementById('tmd2Results');
     if (!box) return;
@@ -119,8 +119,7 @@
   function selectMotor(id) {
     selectedMotor = motors.find(m => m.id === id) || null;
     selectedSize = selectedMotor ? sizes.find(s => s.id === selectedMotor.motor_size_id) || null : null;
-    selectedService = null;
-    selectedPrice = null;
+    selectedService = null; selectedPrice = null;
     const search = document.getElementById('tmd2MotorSearch');
     const treatment = document.getElementById('tmd2Treatment');
     const selected = document.getElementById('tmd2Selected');
@@ -132,8 +131,7 @@
     }).join('');
     treatment.innerHTML = '<option value="">Pilih treatment...</option>' + options;
     selected.innerHTML = `<h3>${esc(selectedMotor.brand)} ${esc(selectedMotor.model)}</h3><div class="tmd2-pills"><span class="tmd2-pill">Size: ${esc(selectedSize?.name || '-')}</span></div><div class="tmd2-help">Sekarang pilih treatment yang kamu mau.</div>`;
-    showStep('tmd2TreatmentStep', true);
-    showStep('tmd2ScheduleStep', false); showStep('tmd2ContactStep', false); showStep('tmd2NotesStep', false);
+    showStep('tmd2TreatmentStep', true); showStep('tmd2ScheduleStep', false); showStep('tmd2ContactStep', false); showStep('tmd2NotesStep', false);
     document.getElementById('tmd2Submit').hidden = true;
     treatment.focus();
     document.querySelectorAll('.tmd2-result').forEach(x => x.classList.toggle('selected', x.dataset.motorId === id));
@@ -152,8 +150,7 @@
   }
 
   async function submit(event) {
-    event.preventDefault();
-    setError('');
+    event.preventDefault(); setError('');
     if (!selectedMotor || !selectedService || selectedPrice == null) return setError('Pilih motor dan treatment dulu.');
     const name = document.getElementById('tmd2Name').value.trim();
     const date = document.getElementById('tmd2Date').value;
@@ -163,24 +160,10 @@
     if (!name || !date || !time || !phone) return setError('Lengkapi data wajib dulu.');
     if (!/^[0-9+\s()-]{8,30}$/.test(phone)) return setError('Nomor HP/WhatsApp tidak valid.');
     if (date < todayISO()) return setError('Tanggal booking tidak boleh lewat.');
-
     const button = document.getElementById('tmd2Submit');
     button.disabled = true; button.textContent = 'Menyimpan booking...';
     try {
-      const payload = {
-        customer_name: name,
-        phone,
-        motor_type: `${selectedMotor.brand} ${selectedMotor.model}`,
-        service_id: selectedService.id,
-        motor_size_id: selectedMotor.motor_size_id,
-        appointment_date: date,
-        appointment_time: time,
-        dp_amount: null,
-        notes: notes || null,
-        dp_paid: false,
-        status: 'pending',
-        source: 'whatsapp'
-      };
+      const payload = { customer_name:name, phone, motor_type:`${selectedMotor.brand} ${selectedMotor.model}`, service_id:selectedService.id, motor_size_id:selectedMotor.motor_size_id, appointment_date:date, appointment_time:time, dp_amount:null, notes:notes||null, dp_paid:false, status:'pending', source:'whatsapp' };
       const { error } = await db.from('bookings').insert(payload);
       if (error) throw error;
       const message = [
@@ -195,7 +178,7 @@
         `No. HP: ${phone}`,
         notes ? `Deskripsi kondisi motor: ${notes}` : ''
       ].filter(Boolean).join('\n');
-      window.location.href = `https://wa.me/6285157597544?text=${encodeURIComponent(message)}`;
+      window.location.href = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(message)}`;
     } catch (err) {
       console.error('[TMD] Booking V2 error:', err);
       setError(err?.message || 'Booking gagal disimpan. Coba lagi.');
@@ -203,47 +186,77 @@
     }
   }
 
+  function loadSupabaseSdk() {
+    if (window.supabase?.createClient) return Promise.resolve(window.supabase);
+    return new Promise((resolve, reject) => {
+      const existing = document.querySelector('script[data-tmd-supabase-sdk]');
+      if (existing) {
+        existing.addEventListener('load', () => resolve(window.supabase));
+        existing.addEventListener('error', () => reject(new Error('Gagal memuat Supabase.')));
+        if (window.supabase?.createClient) resolve(window.supabase);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+      script.async = true;
+      script.dataset.tmdSupabaseSdk = '1';
+      script.onload = () => window.supabase?.createClient ? resolve(window.supabase) : reject(new Error('Supabase SDK tidak tersedia.'));
+      script.onerror = () => reject(new Error('Gagal memuat Supabase SDK.'));
+      document.head.appendChild(script);
+    });
+  }
+
   async function init() {
     addStyles();
-    const oldModal = document.getElementById('tmdBookingModal');
-    if (oldModal) oldModal.remove();
+    document.getElementById('tmdBookingModal')?.remove();
+    document.getElementById('tmdBookingModalV2')?.remove();
+
     const oldButton = document.querySelector('.booking-button');
-    if (!oldButton) return;
+    if (!oldButton) { console.warn('[TMD] Tombol booking tidak ditemukan.'); return; }
+
     const newButton = oldButton.cloneNode(true);
-    newButton.removeAttribute('href');
-    newButton.href = '#booking';
+    newButton.removeAttribute('target'); newButton.removeAttribute('rel'); newButton.href = '#booking';
     oldButton.replaceWith(newButton);
     document.body.insertAdjacentHTML('beforeend', modalMarkup());
 
-    const sdk = window.supabase;
-    if (!sdk?.createClient) return;
-    db = sdk.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const [servicesRes, sizesRes, motorsRes, pricesRes] = await Promise.all([
-      db.from('services').select('id,name,active,sort_order').eq('active', true).order('sort_order'),
-      db.from('motor_sizes').select('id,name,active,sort_order').eq('active', true).order('sort_order'),
-      db.from('motor_catalog').select('id,brand,model,motor_size_id,active,sort_order').eq('active', true).order('brand').order('sort_order').limit(1000),
-      db.from('service_prices').select('id,service_id,motor_size_id,price,active').eq('active', true)
-    ]);
-    for (const r of [servicesRes,sizesRes,motorsRes,pricesRes]) if (r.error) throw r.error;
-    services = servicesRes.data || []; sizes = sizesRes.data || []; motors = motorsRes.data || []; prices = pricesRes.data || [];
-
-    const timeSelect = document.getElementById('tmd2Time');
-    timeSelect.innerHTML = '<option value="">Pilih jam...</option>' + slots().map(t => `<option value="${t}">${t}</option>`).join('');
-    const date = document.getElementById('tmd2Date');
-    date.min = todayISO(); date.value = todayISO();
-
-    newButton.addEventListener('click', e => { e.preventDefault(); const modal = document.getElementById('tmdBookingModalV2'); modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); });
-    document.getElementById('tmd2Close').addEventListener('click', close);
-    document.getElementById('tmdBookingModalV2').addEventListener('click', e => { if (e.target.id === 'tmdBookingModalV2') close(); });
-    document.getElementById('tmd2Form').addEventListener('submit', submit);
-    document.getElementById('tmd2MotorSearch').addEventListener('input', e => { selectedMotor = null; selectedService = null; selectedPrice = null; showStep('tmd2TreatmentStep', false); showStep('tmd2ScheduleStep', false); showStep('tmd2ContactStep', false); showStep('tmd2NotesStep', false); document.getElementById('tmd2Submit').hidden = true; renderMotorResults(e.target.value); });
-    document.getElementById('tmd2Treatment').addEventListener('change', e => selectTreatment(e.target.value));
-  }
-
-  function close() {
     const modal = document.getElementById('tmdBookingModalV2');
-    if (modal) { modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); }
+    const close = () => { modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); };
+    const open = e => { e.preventDefault(); modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); document.getElementById('tmd2Name')?.focus(); };
+    newButton.addEventListener('click', open);
+    document.getElementById('tmd2Close').addEventListener('click', close);
+    modal.addEventListener('click', e => { if (e.target === modal) close(); });
+
+    const sdk = await loadSupabaseSdk();
+    db = sdk.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    try {
+      const [servicesRes, sizesRes, motorsRes, pricesRes] = await Promise.all([
+        db.from('services').select('id,name,active,sort_order').eq('active', true).order('sort_order'),
+        db.from('motor_sizes').select('id,name,active,sort_order').eq('active', true).order('sort_order'),
+        db.from('motor_catalog').select('id,brand,model,motor_size_id,active,sort_order').eq('active', true).order('brand').order('sort_order').limit(1000),
+        db.from('service_prices').select('id,service_id,motor_size_id,price,active').eq('active', true)
+      ]);
+      for (const r of [servicesRes,sizesRes,motorsRes,pricesRes]) if (r.error) throw r.error;
+      services = servicesRes.data || []; sizes = sizesRes.data || []; motors = motorsRes.data || []; prices = pricesRes.data || [];
+
+      const timeSelect = document.getElementById('tmd2Time');
+      timeSelect.innerHTML = '<option value="">Pilih jam...</option>' + slots().map(t => `<option value="${t}">${t}</option>`).join('');
+      const date = document.getElementById('tmd2Date'); date.min = todayISO(); date.value = todayISO();
+
+      document.getElementById('tmd2Form').addEventListener('submit', submit);
+      document.getElementById('tmd2MotorSearch').addEventListener('input', e => { resetAfterMotorSearch(); renderMotorResults(e.target.value); });
+      document.getElementById('tmd2Treatment').addEventListener('change', e => selectTreatment(e.target.value));
+    } catch (err) {
+      console.error('[TMD] Booking data error:', err);
+      const box = document.getElementById('tmd2Results');
+      if (box) box.innerHTML = `<div class="tmd2-error show">Booking belum bisa memuat katalog/harga: ${esc(err?.message || 'error')}</div>`;
+    }
   }
 
-  window.addEventListener('DOMContentLoaded', () => setTimeout(() => init().catch(err => console.error('[TMD] Booking init error:', err)), 400));
+  function start() {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(() => init().catch(e => console.error('[TMD] Booking init error:', e)), 150), {once:true});
+    else setTimeout(() => init().catch(e => console.error('[TMD] Booking init error:', e)), 150);
+  }
+
+  start();
 })();
