@@ -1,15 +1,1 @@
-<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>THE MOTODETAILERS Admin</title></head><body><div style="font-family:Arial,sans-serif;padding:30px;color:#111827">Memuat dashboard admin...</div><script>
-(async()=>{
-  try{
-    const r=await fetch('./admin-dashboard-v2.html?fix='+Date.now(),{cache:'no-store'});
-    if(!r.ok) throw new Error('Dashboard gagal dimuat ('+r.status+')');
-    let html=await r.text();
-    const oldGuard="async function adminGuard(){const {data:{user}}=await db.auth.getUser();if(!user||user.email?.toLowerCase()!==ADMIN.toLowerCase()){location.href='./admin.html';return false}const {data:p}=await db.from('profiles').select('full_name,role').eq('id',user.id).maybeSingle();if(p?.role!=='admin'){await db.auth.signOut();location.href='./admin.html';return false}$('userInfo').textContent=p.full_name||user.email;return true}";
-    const newGuard="async function adminGuard(){const timeout=(ms)=>new Promise((_,reject)=>setTimeout(()=>reject(new Error('Koneksi Supabase timeout.')),ms));try{$('userInfo').textContent='Memverifikasi sesi...';const result=await Promise.race([db.auth.getSession(),timeout(10000)]);const session=result?.data?.session;const user=session?.user;if(!user||user.email?.toLowerCase()!==ADMIN.toLowerCase()){location.href='./admin.html';return false}const pResult=await Promise.race([db.from('profiles').select('full_name,role').eq('id',user.id).maybeSingle(),timeout(10000)]);if(pResult.error)throw pResult.error;const p=pResult.data;if(p?.role!=='admin'){await db.auth.signOut();location.href='./admin.html';return false}$('userInfo').textContent=p.full_name||user.email;return true}catch(e){console.error('Admin guard:',e);$('userInfo').textContent='Gagal memuat sesi admin';toast('Koneksi admin bermasalah: '+(e?.message||e));return false}}";
-    if(!html.includes(oldGuard)) throw new Error('Guard lama tidak ditemukan');
-    html=html.replace(oldGuard,newGuard);
-    html=html.replace("(async()=>{if(!(await adminGuard()))return;await Promise.all([loadServices(),loadSizes(),loadMotors(),loadPrices(),loadBookings(),loadSettings()])})();","(async()=>{try{if(!(await adminGuard()))return;await Promise.all([loadServices(),loadSizes(),loadMotors(),loadPrices(),loadBookings(),loadSettings()])}catch(e){console.error('Admin init:',e);toast('Dashboard gagal memuat: '+(e?.message||e))}})();");
-    document.open();document.write(html);document.close();
-  }catch(e){document.body.innerHTML='<div style="font-family:Arial,sans-serif;padding:30px;color:#b91c1c"><h2>Dashboard gagal dimuat</h2><p>'+String(e?.message||e).replace(/[<>]/g,'')+'</p><p>Silakan refresh halaman.</p></div>';console.error(e)}
-})();
-</script></body></html>
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0;url=./admin-dashboard-v2.html"><title>THE MOTODETAILERS Admin</title><script>location.replace('./admin-dashboard-v2.html')</script></head><body>Memuat dashboard...</body></html>
