@@ -5,7 +5,7 @@
 
   const esc = value => String(value ?? '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    .replace(/\"/g, '&quot;').replace(/'/g, '&#039;');
 
   const rupiah = value => new Intl.NumberFormat('id-ID', {
     style: 'currency', currency: 'IDR', maximumFractionDigits: 0
@@ -101,12 +101,54 @@
     const submit = document.getElementById('tmd2Submit'); if (submit) submit.hidden = true;
   }
 
+  function normalize(value) {
+    return String(value ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
+  }
+
+  function mergeStaticCatalog() {
+    if (typeof catalogRows === 'undefined' || !Array.isArray(catalogRows) || !Array.isArray(sizes)) return;
+    const sizeIdByKey = {};
+    const sizeNamesFromPage = typeof sizeNames !== 'undefined' ? sizeNames : {};
+    Object.entries(sizeNamesFromPage).forEach(([key,name]) => {
+      const found = sizes.find(s => normalize(s.name) === normalize(name));
+      if (found) sizeIdByKey[key] = found.id;
+    });
+    const existing = new Set(motors.map(m => `${normalize(m.brand)}|${normalize(m.model)}`));
+    catalogRows.forEach(row => {
+      const key = `${normalize(row.brand)}|${normalize(row.model)}`;
+      if (existing.has(key)) return;
+      const motorSizeId = sizeIdByKey[row.size];
+      if (!motorSizeId) return;
+      motors.push({
+        id: `static-${normalize(row.brand)}-${normalize(row.model)}-${row.size}`,
+        brand: row.brand,
+        model: row.model,
+        motor_size_id: motorSizeId,
+        active: true,
+        sort_order: 999999,
+        __staticCatalog: true
+      });
+      existing.add(key);
+    });
+  }
+
   function renderMotorResults(query) {
     const box = document.getElementById('tmd2Results');
     if (!box) return;
     const q = query.trim().toLowerCase();
     if (q.length < 2) { box.innerHTML = ''; return; }
-    const hits = motors.filter(m => `${m.brand} ${m.model}`.toLowerCase().includes(q)).slice(0, 20);
+    const nq = normalize(q);
+    const hits = motors.filter(m => {
+      const brand = normalize(m.brand);
+      const model = normalize(m.model);
+      return brand.includes(nq) || model.includes(nq) || `${brand}${model}`.includes(nq);
+    }).sort((a,b) => {
+      const aq = normalize(`${a.brand} ${a.model}`);
+      const bq = normalize(`${b.brand} ${b.model}`);
+      const ar = aq.startsWith(nq) ? 0 : (aq.includes(nq) ? 1 : 2);
+      const br = bq.startsWith(nq) ? 0 : (bq.includes(nq) ? 1 : 2);
+      return ar - br || aq.localeCompare(bq);
+    }).slice(0, 30);
     if (!hits.length) { box.innerHTML = '<div class="tmd2-help">Motor tidak ditemukan di katalog. Coba ketik nama lain.</div>'; return; }
     box.innerHTML = hits.map(m => {
       const size = sizes.find(s => s.id === m.motor_size_id);
@@ -233,11 +275,12 @@
       const [servicesRes, sizesRes, motorsRes, pricesRes] = await Promise.all([
         db.from('services').select('id,name,active,sort_order').eq('active', true).order('sort_order'),
         db.from('motor_sizes').select('id,name,active,sort_order').eq('active', true).order('sort_order'),
-        db.from('motor_catalog').select('id,brand,model,motor_size_id,active,sort_order').eq('active', true).order('brand').order('sort_order').limit(1000),
+        db.from('motor_catalog').select('id,brand,model,motor_size_id,active,sort_order').eq('active', true).order('brand').order('sort_order').limit(5000),
         db.from('service_prices').select('id,service_id,motor_size_id,price,active').eq('active', true)
       ]);
       for (const r of [servicesRes,sizesRes,motorsRes,pricesRes]) if (r.error) throw r.error;
       services = servicesRes.data || []; sizes = sizesRes.data || []; motors = motorsRes.data || []; prices = pricesRes.data || [];
+      mergeStaticCatalog();
 
       const timeSelect = document.getElementById('tmd2Time');
       timeSelect.innerHTML = '<option value="">Pilih jam...</option>' + slots().map(t => `<option value="${t}">${t}</option>`).join('');
