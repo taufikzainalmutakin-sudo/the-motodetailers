@@ -1,25 +1,14 @@
 (() => {
-  const OLD_PRICE_SYNC = 'https://cdn.jsdelivr.net/gh/taufikzainalmutakin-sudo/the-motodetailers@5fb6c2971dd4752efbd5a86616241d1178f643e1/price-sync.js';
   const SUPABASE_URL = 'https://nbsmkxarkpesjiftmbwm.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_dMXeVPXD_oU5NrdV2-sSew_CZxB5lFI';
 
   const esc = value => String(value ?? '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    .replace(/\"/g, '&quot;').replace(/'/g, '&#039;');
 
   const rupiah = value => new Intl.NumberFormat('id-ID', {
     style: 'currency', currency: 'IDR', maximumFractionDigits: 0
   }).format(Number(value) || 0);
-
-  function loadOldSync() {
-    return new Promise((resolve) => {
-      const script = document.createElement('script');
-      script.src = OLD_PRICE_SYNC;
-      script.onload = () => resolve();
-      script.onerror = () => resolve();
-      document.head.appendChild(script);
-    });
-  }
 
   function addStyles() {
     if (document.getElementById('tmd-booking-v2-styles')) return;
@@ -54,14 +43,14 @@
       <div id="tmdBookingModalV2" class="tmd2-modal" aria-hidden="true">
         <div class="tmd2-box" role="dialog" aria-modal="true" aria-labelledby="tmd2Title">
           <div class="tmd2-head"><h2 id="tmd2Title">Booking Treatment</h2><button id="tmd2Close" class="tmd2-close" type="button" aria-label="Tutup">×</button></div>
-          <div class="tmd2-help">Isi urutannya: nama → cari tipe motor → pilih treatment → pilih tanggal & jam → nomor HP → kondisi motor.</div>
+          <div class="tmd2-help">Urutan booking: nama → cari tipe motor → pilih treatment → tanggal & jam → nomor HP → kondisi motor.</div>
           <div id="tmd2Error" class="tmd2-error"></div>
           <form id="tmd2Form">
             <div class="tmd2-step"><div class="tmd2-step-title">1. Nama customer</div><div class="tmd2-field"><input id="tmd2Name" required maxlength="80" autocomplete="name" placeholder="Nama customer"></div></div>
-            <div class="tmd2-step"><div class="tmd2-step-title">2. Cari tipe motor</div><div class="tmd2-field"><input id="tmd2MotorSearch" required maxlength="100" autocomplete="off" placeholder="Ketik contoh: Beat, Vario 160, NMAX..."><div class="tmd2-help">Ketik minimal 2 karakter. Hasil menampilkan size motor + semua pricelist treatment.</div><div id="tmd2Results" class="tmd2-results"></div></div></div>
+            <div class="tmd2-step"><div class="tmd2-step-title">2. Cari tipe motor</div><div class="tmd2-field"><input id="tmd2MotorSearch" required maxlength="100" autocomplete="off" placeholder="Ketik contoh: Beat, Vario 160, NMAX..."><div class="tmd2-help">Ketik minimal 2 karakter. Pilih motor dari hasil pencarian untuk melihat size dan pricelist treatment.</div><div id="tmd2Results" class="tmd2-results"></div></div></div>
             <div id="tmd2TreatmentStep" class="tmd2-step" hidden><div class="tmd2-step-title">3. Pilih treatment</div><div class="tmd2-field"><select id="tmd2Treatment" required><option value="">Pilih treatment...</option></select></div><div id="tmd2Selected" class="tmd2-selected"><div class="tmd2-help">Pilih treatment untuk melihat detail harga.</div></div></div>
             <div id="tmd2ScheduleStep" class="tmd2-step" hidden><div class="tmd2-step-title">4. Waktu & tanggal booking</div><div class="tmd2-grid"><div class="tmd2-field"><label for="tmd2Date">Tanggal kedatangan</label><input id="tmd2Date" type="date" required></div><div class="tmd2-field"><label for="tmd2Time">Jam kedatangan</label><select id="tmd2Time" required><option value="">Pilih jam...</option></select></div></div></div>
-            <div id="tmd2ContactStep" class="tmd2-step" hidden><div class="tmd2-step-title">5. No. HP customer</div><div class="tmd2-field"><input id="tmd2Phone" type="tel" required maxlength="30" autocomplete="tel" placeholder="08xxxxxxxxxx"></div></div>
+            <div id="tmd2ContactStep" class="tmd2-step" hidden><div class="tmd2-step-title">5. No. HP / WhatsApp</div><div class="tmd2-field"><input id="tmd2Phone" type="tel" required maxlength="30" autocomplete="tel" placeholder="08xxxxxxxxxx"></div></div>
             <div id="tmd2NotesStep" class="tmd2-step" hidden><div class="tmd2-step-title">6. Deskripsi kondisi motor <span style="font-weight:400;color:#6b7280">(opsional)</span></div><div class="tmd2-field"><textarea id="tmd2Notes" rows="4" maxlength="1000" placeholder="Contoh: body banyak swirl, ada baret di tangki, dll."></textarea></div></div>
             <button id="tmd2Submit" class="tmd2-submit" type="submit" hidden>Lanjut Booking via WhatsApp</button>
           </form>
@@ -78,17 +67,6 @@
   let selectedPrice = null;
   let selectedService = null;
   let selectedSize = null;
-
-  function normalizePhone(value) {
-    const digits = String(value || '').replace(/\D/g, '');
-    if (digits.startsWith('0')) return '62' + digits.slice(1);
-    if (digits.startsWith('62')) return digits;
-    return digits;
-  }
-
-  function whatsappNumber() {
-    return '6285157597544';
-  }
 
   function slots() {
     const out = [];
@@ -206,8 +184,7 @@
       const { error } = await db.from('bookings').insert(payload);
       if (error) throw error;
       const message = [
-        'Halo THE MOTODETAILERS, saya mau booking treatment.',
-        '',
+        'Halo THE MOTODETAILERS, saya mau booking treatment.', '',
         `Nama: ${name}`,
         `Tipe motor: ${selectedMotor.brand} ${selectedMotor.model}`,
         `Size motor: ${selectedSize?.name || '-'}`,
@@ -218,7 +195,7 @@
         `No. HP: ${phone}`,
         notes ? `Deskripsi kondisi motor: ${notes}` : ''
       ].filter(Boolean).join('\n');
-      window.location.href = `https://wa.me/${whatsappNumber()}?text=${encodeURIComponent(message)}`;
+      window.location.href = `https://wa.me/6285157597544?text=${encodeURIComponent(message)}`;
     } catch (err) {
       console.error('[TMD] Booking V2 error:', err);
       setError(err?.message || 'Booking gagal disimpan. Coba lagi.');
@@ -227,7 +204,6 @@
   }
 
   async function init() {
-    await loadOldSync();
     addStyles();
     const oldModal = document.getElementById('tmdBookingModal');
     if (oldModal) oldModal.remove();
