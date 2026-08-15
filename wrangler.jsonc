@@ -1,9 +1,15 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "the-motodetailers-site",
+  "main": "worker.js",
   "compatibility_date": "2026-08-13",
   "assets": {
-    "directory": "."
+    "directory": ".",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/admin-dashboard*",
+      "/api/admin-session"
+    ]
   },
   "observability": {
     "enabled": true
