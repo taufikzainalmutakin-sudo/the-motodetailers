@@ -1,0 +1,179 @@
+const SUPABASE_URL = 'https://nbsmkxarkpesjiftmbwm.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_dMXeVPXD_oU5NrdV2-sSew_CZxB5lFI';
+const ADMIN_EMAIL = 'taufikzainalmutakin@gmail.com';
+const ACCESS_COOKIE = 'tmd_admin_access';
+const REFRESH_COOKIE = 'tmd_admin_refresh';
+
+function parseCookies(request) {
+  const raw = request.headers.get('Cookie') || '';
+  const out = {};
+  for (const part of raw.split(';')) {
+    const i = part.indexOf('=');
+    if (i < 0) continue;
+    const key = part.slice(0, i).trim();
+    const value = part.slice(i + 1).trim();
+    out[key] = decodeURIComponent(value);
+  }
+  return out;
+}
+
+function cookie(name, value, maxAge) {
+  return `${name}=${encodeURIComponent(value)}; Max-Age=${maxAge}; Path=/admin-dashboard; HttpOnly; Secure; SameSite=Lax`;
+}
+
+function clearCookie(name) {
+  return `${name}=; Max-Age=0; Path=/admin-dashboard; HttpOnly; Secure; SameSite=Lax`;
+}
+
+function redirectToLogin(request) {
+  const url = new URL(request.url);
+  const next = encodeURIComponent(url.pathname + url.search);
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: `/admin.html?next=${next}`,
+      'Cache-Control': 'no-store',
+      'Referrer-Policy': 'no-referrer',
+    },
+  });
+}
+
+async function getAdminUser(accessToken) {
+  if (!accessToken) return null;
+
+  const authResponse = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!authResponse.ok) return null;
+  const user = await authResponse.json();
+  if (!user?.id || user.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) return null;
+
+  const profileResponse = await fetch(
+    `${SUPABASE_URL}/rest/v1/profiles?select=role&id=eq.${encodeURIComponent(user.id)}&limit=1`,
+    {
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+
+  if (!profileResponse.ok) return null;
+  const profiles = await profileResponse.json();
+  if (profiles?.[0]?.role !== 'admin') return null;
+
+  return user;
+}
+
+async function refreshSession(refreshToken) {
+  if (!refreshToken) return null;
+
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_KEY,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({ refresh_token: refreshToken }),
+  });
+
+  if (!response.ok) return null;
+  const data = await response.json();
+  if (!data?.access_token || !data?.refresh_token) return null;
+
+  const user = await getAdminUser(data.access_token);
+  if (!user) return null;
+
+  return data;
+}
+
+async function createAdminSession(request) {
+  const authorization = request.headers.get('Authorization') || '';
+  const token = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
+  const user = await getAdminUser(token);
+
+  if (!user) {
+    return new Response(JSON.stringify({ ok: false, error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    });
+  }
+
+  return new Response(JSON.stringify({ ok: true, email: user.email }), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
+      'Set-Cookie': cookie(ACCESS_COOKIE, token, 3600),
+    },
+  });
+}
+
+function clearAdminSession() {
+  const response = new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
+    },
+  });
+  response.headers.append('Set-Cookie', clearCookie(ACCESS_COOKIE));
+  response.headers.append('Set-Cookie', clearCookie(REFRESH_COOKIE));
+  return response;
+}
+
+async function protectAdminPage(request, env) {
+  const cookies = parseCookies(request);
+  let accessToken = cookies[ACCESS_COOKIE];
+  let refreshToken = cookies[REFRESH_COOKIE];
+  let refreshed = null;
+
+  let user = await getAdminUser(accessToken);
+
+  if (!user && refreshToken) {
+    refreshed = await refreshSession(refreshToken);
+    if (refreshed) {
+      accessToken = refreshed.access_token;
+      refreshToken = refreshed.refresh_token;
+      user = await getAdminUser(accessToken);
+    }
+  }
+
+  if (!user) return redirectToLogin(request);
+
+  const response = await env.ASSETS.fetch(request);
+
+  if (!refreshed) return response;
+
+  const headers = new Headers(response.headers);
+  headers.append('Set-Cookie', cookie(ACCESS_COOKIE, accessToken, 3600));
+  headers.append('Set-Cookie', cookie(REFRESH_COOKIE, refreshToken, 60 * 60 * 24 * 30));
+  headers.set('Cache-Control', 'private, no-store');
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+
+    if (url.pathname === '/api/admin-session') {
+      if (request.method === 'POST') return createAdminSession(request);
+      if (request.method === 'DELETE') return clearAdminSession();
+      return new Response('Method Not Allowed', { status: 405 });
+    }
+
+    if (url.pathname === '/admin-dashboard' || url.pathname.startsWith('/admin-dashboard-') || url.pathname.startsWith('/admin-dashboard/')) {
+      return protectAdminPage(request, env);
+    }
+
+    return env.ASSETS.fetch(request);
+  },
+};
