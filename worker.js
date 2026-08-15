@@ -18,11 +18,11 @@ function parseCookies(request) {
 }
 
 function cookie(name, value, maxAge) {
-  return `${name}=${encodeURIComponent(value)}; Max-Age=${maxAge}; Path=/admin-dashboard; HttpOnly; Secure; SameSite=Lax`;
+  return `${name}=${encodeURIComponent(value)}; Max-Age=${maxAge}; Path=/; HttpOnly; Secure; SameSite=Lax`;
 }
 
 function clearCookie(name) {
-  return `${name}=; Max-Age=0; Path=/admin-dashboard; HttpOnly; Secure; SameSite=Lax`;
+  return `${name}=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax`;
 }
 
 function redirectToLogin(request) {
