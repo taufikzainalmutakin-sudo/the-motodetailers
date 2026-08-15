@@ -5,7 +5,7 @@ const DEFAULT_WA='6287878333037';
 let db,services=[],sizes=[],motors=[],prices=[],waNumber=DEFAULT_WA,reloadTimer;
 let selectedMotor=null,selectedService=null,selectedSize=null,selectedPrice=null;
 const $=id=>document.getElementById(id);
-const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const esc=v=>String(v??'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#039;'}[m]));
 const rupiah=v=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(v)||0);
 const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
 const findPrice=(serviceId,sizeId)=>{const p=prices.find(x=>x.service_id===serviceId&&x.motor_size_id===sizeId&&x.active!==false);return p?Number(p.price):null};
@@ -30,5 +30,17 @@ function renderAll(){renderPublicServices();renderPublicPrices();if(!document.ge
 function scheduleReload(){clearTimeout(reloadTimer);reloadTimer=setTimeout(()=>fetchData().then(renderAll).catch(e=>console.error('[TMD] realtime reload',e)),250)}
 function subscribeRealtime(){db.channel('customer-live-sync-v6').on('postgres_changes',{event:'*',schema:'public',table:'service_prices'},scheduleReload).on('postgres_changes',{event:'*',schema:'public',table:'services'},scheduleReload).on('postgres_changes',{event:'*',schema:'public',table:'motor_catalog'},scheduleReload).on('postgres_changes',{event:'*',schema:'public',table:'motor_sizes'},scheduleReload).on('postgres_changes',{event:'*',schema:'public',table:'site_settings'},scheduleReload).subscribe()}
 async function init(){const box=document.querySelector('.services');if(box)box.innerHTML='<div class="service"><h3>Memuat layanan...</h3><p>Mengambil data layanan terbaru.</p></div>';try{await loadSdk();db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);await fetchData();renderAll();subscribeRealtime()}catch(e){console.error('[TMD] public sync',e);if(box)box.innerHTML='<div class="service"><h3>Layanan belum dapat dimuat</h3><p>Silakan refresh halaman.</p></div>';}}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+function fixPublicSearchLayout(){
+ const box=document.querySelector('.searchbox'),results=document.getElementById('results');
+ if(!box||!results||document.getElementById('tmd-public-search-layout-fix'))return;
+ const s=document.createElement('style');s.id='tmd-public-search-layout-fix';
+ s.textContent=`
+ .searchbox{position:relative}
+ .searchbox .results{position:absolute;left:18px;right:18px;top:calc(100% - 8px);margin-top:0;max-height:360px;overflow:auto;z-index:50;padding:4px 0 0}
+ .searchbox .results:empty{display:none}
+ .searchbox .results .result{box-shadow:0 8px 24px rgba(0,0,0,.12)}
+ `;
+ document.head.appendChild(s);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{fixPublicSearchLayout();init()},{once:true});else{fixPublicSearchLayout();init()}
 })();
