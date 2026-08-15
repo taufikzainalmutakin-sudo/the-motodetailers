@@ -4,3 +4,4 @@
 .wrangler/**
 .gitignore
 .assetsignore
+worker.js
