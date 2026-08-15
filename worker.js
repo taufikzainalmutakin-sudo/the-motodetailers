@@ -173,9 +173,13 @@ export default {
       return new Response('Method Not Allowed', { status: 405 });
     }
 
-    if (url.pathname === '/admin-dashboard' || url.pathname.startsWith('/admin-dashboard-') || url.pathname.startsWith('/admin-dashboard/')) {
-      return protectAdminPage(request, env);
-    }
+    const protectedAdmin =
+      url.pathname === '/admin-dashboard' ||
+      url.pathname === '/admin-dashboard.html' ||
+      url.pathname.startsWith('/admin-dashboard-') ||
+      url.pathname.startsWith('/admin-dashboard/');
+
+    if (protectedAdmin) return protectAdminPage(request, env);
 
     return env.ASSETS.fetch(request);
   },
