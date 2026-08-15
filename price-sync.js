@@ -32,28 +32,15 @@ function subscribeRealtime(){db.channel('customer-live-sync-v6').on('postgres_ch
 async function init(){const box=document.querySelector('.services');if(box)box.innerHTML='<div class="service"><h3>Memuat layanan...</h3><p>Mengambil data layanan terbaru.</p></div>';try{await loadSdk();db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);await fetchData();renderAll();subscribeRealtime()}catch(e){console.error('[TMD] public sync',e);if(box)box.innerHTML='<div class="service"><h3>Layanan belum dapat dimuat</h3><p>Silakan refresh halaman.</p></div>';}}
 function fixPublicSearchLayout(){
  const box=document.querySelector('.searchbox'),results=document.getElementById('results');
- if(!box||!results)return;
- const noteId='tmd-public-search-note';
- let note=document.getElementById(noteId);
- if(!note){
-   note=document.createElement('p');
-   note.id=noteId;
-   note.className='note';
-   note.textContent='Ketik minimal 2 karakter untuk mencari.';
-   box.insertBefore(note,results);
- }
- results.querySelectorAll('.note').forEach(n=>n.remove());
- if(!document.getElementById('tmd-public-search-layout-fix')){
-   const s=document.createElement('style');s.id='tmd-public-search-layout-fix';
-   s.textContent=`
-   .searchbox{position:relative}
-   .searchbox #tmd-public-search-note{display:block;margin:8px 0 0}
-   .searchbox .results{position:relative;left:auto;right:auto;top:auto;margin-top:12px;max-height:360px;overflow:auto;z-index:auto;padding:0}
-   .searchbox .results:empty{display:none}
-   .searchbox .results .result{box-shadow:0 8px 24px rgba(0,0,0,.08)}
-   `;
-   document.head.appendChild(s);
- }
+ if(!box||!results||document.getElementById('tmd-public-search-layout-fix'))return;
+ const s=document.createElement('style');s.id='tmd-public-search-layout-fix';
+ s.textContent=`
+ .searchbox{position:relative}
+ .searchbox .results{position:relative;left:auto;right:auto;top:auto;margin-top:12px;max-height:360px;overflow:auto;z-index:auto;padding:0}
+ .searchbox .results:empty{display:none}
+ .searchbox .results .result{box-shadow:0 8px 24px rgba(0,0,0,.08)}
+ `;
+ document.head.appendChild(s);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{fixPublicSearchLayout();init()},{once:true});else{fixPublicSearchLayout();init()}
 })();
