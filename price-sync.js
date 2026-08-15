@@ -36,9 +36,9 @@ function fixPublicSearchLayout(){
  const s=document.createElement('style');s.id='tmd-public-search-layout-fix';
  s.textContent=`
  .searchbox{position:relative}
- .searchbox .results{position:absolute;left:18px;right:18px;top:calc(100% - 8px);margin-top:0;max-height:360px;overflow:auto;z-index:50;padding:4px 0 0}
+ .searchbox .results{position:relative;left:auto;right:auto;top:auto;margin-top:12px;max-height:360px;overflow:auto;z-index:auto;padding:0}
  .searchbox .results:empty{display:none}
- .searchbox .results .result{box-shadow:0 8px 24px rgba(0,0,0,.12)}
+ .searchbox .results .result{box-shadow:0 8px 24px rgba(0,0,0,.08)}
  `;
  document.head.appendChild(s);
 }
