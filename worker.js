@@ -96,7 +96,7 @@ async function servePublic(request, env) {
   if (!type.includes('text/html') || url.pathname.startsWith('/admin')) return response;
   const html = await response.text();
   if (html.includes('/public-sync-stable.js')) return new Response(html,{status:response.status,statusText:response.statusText,headers:response.headers});
-  const injected = html.replace('</body>','<script src="/public-sync-stable.js?v=stable1"></script></body>');
+  const injected = html.replace('</body>','<script src="/public-sync-stable.js?v=stable2"></script></body>');
   const headers = new Headers(response.headers);
   headers.set('Content-Type','text/html; charset=UTF-8');
   headers.set('Cache-Control','no-store, max-age=0');
