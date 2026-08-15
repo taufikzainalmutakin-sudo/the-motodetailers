@@ -1,4 +1,6 @@
-**/.git
-**/.git/**
-**/.wrangler
-**/.wrangler/**
+.git
+.git/**
+.wrangler
+.wrangler/**
+.gitignore
+.assetsignore
