@@ -1,7 +1,10 @@
-.git
-.git/**
-.wrangler
-.wrangler/**
+**/.git
+**/.git/**
+**/.wrangler
+**/.wrangler/**
+node_modules
+node_modules/**
 .gitignore
 .assetsignore
 worker.js
+wrangler.jsonc
