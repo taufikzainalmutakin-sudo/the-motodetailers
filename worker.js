@@ -81,12 +81,18 @@ async function protectAdminPage(request, env) {
   }
   if (!user) return redirectToLogin(request);
   const response = await env.ASSETS.fetch(request);
-  if (!refreshed) return response;
+  const type = response.headers.get('content-type') || '';
+  if (!type.includes('text/html')) return response;
+  const html = await response.text();
+  const injected = html.includes('/admin-dashboard-hotfix.js') ? html : html.replace('</body>','<script src="/admin-dashboard-hotfix.js?v=2"></script></body>');
   const headers = new Headers(response.headers);
-  headers.append('Set-Cookie',cookie(ACCESS_COOKIE,accessToken,3600));
-  headers.append('Set-Cookie',cookie(REFRESH_COOKIE,refreshToken,60*60*24*30));
-  headers.set('Cache-Control','private, no-store');
-  return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
+  headers.set('Content-Type','text/html; charset=UTF-8');
+  headers.set('Cache-Control','private, no-store, max-age=0');
+  if (refreshed) {
+    headers.append('Set-Cookie',cookie(ACCESS_COOKIE,accessToken,3600));
+    headers.append('Set-Cookie',cookie(REFRESH_COOKIE,refreshToken,60*60*24*30));
+  }
+  return new Response(injected,{status:response.status,statusText:response.statusText,headers});
 }
 
 async function servePublic(request, env) {
