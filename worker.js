@@ -94,23 +94,26 @@ async function refreshSession(refreshToken) {
 async function createAdminSession(request) {
   const authorization = request.headers.get('Authorization') || '';
   const token = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
+  const refreshToken = request.headers.get('X-Admin-Refresh-Token') || '';
   const user = await getAdminUser(token);
 
-  if (!user) {
+  if (!user || !refreshToken) {
     return new Response(JSON.stringify({ ok: false, error: 'Unauthorized' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     });
   }
 
-  return new Response(JSON.stringify({ ok: true, email: user.email }), {
+  const response = new Response(JSON.stringify({ ok: true, email: user.email }), {
     status: 200,
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-store',
-      'Set-Cookie': cookie(ACCESS_COOKIE, token, 3600),
     },
   });
+  response.headers.append('Set-Cookie', cookie(ACCESS_COOKIE, token, 3600));
+  response.headers.append('Set-Cookie', cookie(REFRESH_COOKIE, refreshToken, 60 * 60 * 24 * 30));
+  return response;
 }
 
 function clearAdminSession() {
