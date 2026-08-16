@@ -1,0 +1,35 @@
+(()=>{
+'use strict';
+const SUPABASE_URL='https://nbsmkxarkpesjiftmbwm.supabase.co';
+const SUPABASE_KEY='sb_publishable_dMXeVPXD_oU5NrdV2-sSew_CZxB5lFI';
+function boot(){
+  if(!window.supabase?.createClient)return setTimeout(boot,100);
+  const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  const $=s=>document.querySelector(s), money=v=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(v)||0);
+  const grid=$('.summary-grid'), add=$('#addIncome'), list=$('#incomeList');
+  if(!grid||!list)return setTimeout(boot,150);
+  if($('#tmdIncomeCharts'))return;
+  const style=document.createElement('style');style.textContent=`#tmdIncomeCharts{margin:12px 0 14px}.tmd-chart-card{border:1px solid #e6eaf0;border-radius:14px;background:#fff;padding:14px;margin-bottom:10px}.tmd-chart-title{font-weight:800;font-size:15px;margin-bottom:3px}.tmd-chart-sub{font-size:11px;color:#7b8490;margin-bottom:12px}.tmd-bars{display:flex;align-items:flex-end;gap:8px;height:190px;padding:8px 4px 0;overflow-x:auto}.tmd-bar-col{min-width:42px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}.tmd-bar-value{font-size:9px;color:#0757d9;font-weight:800;white-space:nowrap;max-width:72px;overflow:hidden;text-overflow:ellipsis}.tmd-bar{width:28px;min-height:2px;border-radius:6px 6px 2px 2px;background:#1769d2}.tmd-bar-label{font-size:9px;color:#626b76;white-space:nowrap}.tmd-pay-grid{display:grid;grid-template-columns:1fr;gap:8px}.tmd-pay-row{display:grid;grid-template-columns:105px 1fr 92px;align-items:center;gap:8px;font-size:11px}.tmd-pay-label{font-weight:700}.tmd-pay-track{height:14px;background:#edf1f7;border-radius:8px;overflow:hidden}.tmd-pay-fill{height:100%;border-radius:8px;background:#1769d2}.tmd-pay-value{text-align:right;font-weight:800;color:#0757d9;white-space:nowrap}@media(min-width:650px){.tmd-pay-grid{grid-template-columns:1fr 1fr}.tmd-bars{height:210px}}`;
+  document.head.appendChild(style);
+  const wrap=document.createElement('div');wrap.id='tmdIncomeCharts';wrap.innerHTML=`<div class="tmd-chart-card"><div class="tmd-chart-title">Diagram pemasukan</div><div class="tmd-chart-sub" id="tmdChartPeriod">Hari ini</div><div class="tmd-bars" id="tmdIncomeBars"></div></div><div class="tmd-chart-card"><div class="tmd-chart-title">Metode pembayaran</div><div class="tmd-chart-sub" id="tmdPaymentPeriod">Periode hari ini</div><div class="tmd-pay-grid" id="tmdPaymentBars"></div></div>`;
+  (add?.parentElement||grid.parentElement).insertBefore(wrap,add||list);
+  const cards=[...grid.querySelectorAll('.summary-card')], keys=['day','week','month','year'], names=['Hari ini','Minggu ini','Bulan ini','Tahun ini'];let selected='day';
+  function jakartaParts(date){const p=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date).reduce((o,x)=>(o[x.type]=x.value,o),{});return {year:+p.year,month:+p.month,day:+p.day}}
+  function startOfWeek(p){const d=new Date(Date.UTC(p.year,p.month-1,p.day));const n=(d.getUTCDay()+6)%7;d.setUTCDate(d.getUTCDate()-n);return d}
+  function inPeriod(iso,key){const d=new Date(iso);if(Number.isNaN(d.getTime()))return false;const p=jakartaParts(d),t=jakartaParts(new Date());if(key==='day')return p.year===t.year&&p.month===t.month&&p.day===t.day;if(key==='month')return p.year===t.year&&p.month===t.month;if(key==='year')return p.year===t.year;const dt=new Date(Date.UTC(p.year,p.month-1,p.day)),s=startOfWeek(t),e=new Date(Date.UTC(t.year,t.month-1,t.day));return dt>=s&&dt<=e}
+  function bucket(iso,key){const d=new Date(iso),p=jakartaParts(d);if(key==='day'){const h=+new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Jakarta',hour:'2-digit',hourCycle:'h23'}).format(d);return {label:String(h).padStart(2,'0')+':00',order:h}}if(key==='week'){const dt=new Date(Date.UTC(p.year,p.month-1,p.day));const day=(dt.getUTCDay()+6)%7;return {label:['Sen','Sel','Rab','Kam','Jum','Sab','Min'][day],order:day}}if(key==='month')return {label:String(p.day),order:p.day};return {label:['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][p.month-1],order:p.month}}
+  async function load(){
+    const r=await db.from('income_records').select('id,total_amount,paid_at,payment_method').order('paid_at',{ascending:true}).limit(5000);if(r.error){console.error('[TMD income chart]',r.error);return}const rows=r.data||[],periodRows=rows.filter(x=>inPeriod(x.paid_at,selected));
+    const buckets=new Map();periodRows.forEach(x=>{const b=bucket(x.paid_at,selected);buckets.set(b.order,(buckets.get(b.order)||0)+(Number(x.total_amount)||0))});
+    const entries=[...buckets.entries()].sort((a,b)=>a[0]-b[0]).map(([order,value])=>{let sample=periodRows.find(x=>bucket(x.paid_at,selected).order===order);return {label:bucket(sample.paid_at,selected).label,value}});
+    const bars=$('#tmdIncomeBars');bars.innerHTML='';const max=Math.max(1,...entries.map(x=>x.value));
+    if(!entries.length){bars.innerHTML='<div class="empty" style="margin:auto">Belum ada catatan pemasukan untuk periode ini.</div>'}else entries.forEach(x=>{const col=document.createElement('div');col.className='tmd-bar-col';const val=document.createElement('div');val.className='tmd-bar-value';val.textContent=money(x.value);const bar=document.createElement('div');bar.className='tmd-bar';bar.style.height=Math.max(3,(x.value/max)*145)+'px';const lab=document.createElement('div');lab.className='tmd-bar-label';lab.textContent=x.label;col.append(val,bar,lab);bars.appendChild(col)});
+    $('#tmdChartPeriod').textContent=names[keys.indexOf(selected)]+` • ${periodRows.length} catatan`;
+    const methods=['Transfer Bank','Tunai','QRIS','Debit/Kartu','E-Wallet','Lainnya'];const sums=new Map(methods.map(x=>[x,0]));periodRows.forEach(x=>{const m=methods.includes(x.payment_method)?x.payment_method:'Lainnya';sums.set(m,(sums.get(m)||0)+(Number(x.total_amount)||0))});const maxPay=Math.max(1,...sums.values());const pay=$('#tmdPaymentBars');pay.innerHTML='';methods.forEach(m=>{const row=document.createElement('div');row.className='tmd-pay-row';row.innerHTML=`<div class="tmd-pay-label">${m}</div><div class="tmd-pay-track"><div class="tmd-pay-fill" style="width:${((sums.get(m)||0)/maxPay)*100}%"></div></div><div class="tmd-pay-value">${money(sums.get(m)||0)}</div>`;pay.appendChild(row)});$('#tmdPaymentPeriod').textContent='Periode '+names[keys.indexOf(selected)];
+  }
+  cards.forEach((c,i)=>c.addEventListener('click',()=>{selected=keys[i];load()}));
+  new MutationObserver(()=>{clearTimeout(window.__tmdChartTimer);window.__tmdChartTimer=setTimeout(load,250)}).observe(list,{childList:true,subtree:true});
+  load();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
