@@ -33,7 +33,7 @@
       if(!groups.has(key))groups.set(key,{name:size?.name||'Size',order:size?.sort_order??999,rows:[]});
       groups.get(key).rows.push({...row,service:sm.get(row.service_id)});
     }
-    const html=[...groups.values()].sort((a,b)=>a.order-b.order||a.name.localeCompare(b.name)).map(g=>`<div class="pricecard"><h3>${esc(g.name)}</h3>${g.rows.sort((a,b)=>(a.service?.name||'').localeCompare(b.service?.name||'')).map(r=>`<div class="pricerow"><div><b>${esc(r.service?.name||'Layanan')}</b><div class="muted">${r.service?.active===false?'Layanan nonaktif • ':''}${r.active?'Harga aktif':'Harga nonaktif'}</div></div><div style="text-align:right"><strong>${money(r.price)}</strong><br><button class="btn small" type="button" data-hot-price="edit" data-id="${r.id}">Edit harga</button><button class="btn gray small" type="button" data-hot-price="toggle" data-id="${r.id}">${r.active?'Nonaktifkan':'Aktifkan'}</button></div></div>`).join('')}</div>`).join('');
+    const html=[...groups.values()].sort((a,b)=>a.order-b.order||a.name.localeCompare(b.name)).map(g=>`<div class="pricecard"><h3>${esc(g.name)}</h3>${g.rows.sort((a,b)=>(a.service?.name||'').localeCompare(b.service?.name||'')).map(r=>`<div class="pricerow"><div><b>${esc(r.service?.name||'Layanan')}</b><div class="muted">${r.service?.active===false?'Layanan nonaktif • ':''}${r.active?'Harga aktif':'Harga nonaktif'}</div></div><div style="text-align:right"><strong>${money(r.price)}</strong><br><button class="btn small" type="button" data-hot-price="edit" data-id="${r.id}">Edit harga</button><button class="btn gray small" type="button" data-hot-price="toggle" data-id="${r.id}">${r.active?'Nonaktifkan':'Aktifkan'}</button><button class="btn danger small" type="button" data-hot-price="delete" data-id="${r.id}">Hapus</button></div></div>`).join('')}</div>`).join('');
     box.innerHTML=html||'<div class="muted">Belum ada harga.</div>';
     box.classList.remove('loading');
   }
@@ -69,6 +69,20 @@
     const r=await db.rpc('admin_save_service_price',{p_id:id,p_service_id:q.data.service_id,p_motor_size_id:q.data.motor_size_id,p_price:q.data.price,p_active:!q.data.active});if(r.error)throw r.error;
     toast(q.data.active?'Harga dinonaktifkan':'Harga diaktifkan');await refreshPrices();
   }
+  async function deletePriceHot(id){
+    const q=await db.from('service_prices').select('id,price,service_id,motor_size_id').eq('id',id).single();
+    if(q.error)throw q.error;
+    const service=await db.from('services').select('name').eq('id',q.data.service_id).maybeSingle();
+    if(service.error)throw service.error;
+    const size=await db.from('motor_sizes').select('name').eq('id',q.data.motor_size_id).maybeSingle();
+    if(size.error)throw size.error;
+    const label=[service.data?.name,size.data?.name].filter(Boolean).join(' — ');
+    if(!confirm('Hapus pricelist '+(label||'ini')+'?'))return;
+    const r=await db.rpc('admin_delete_service_price',{p_price_id:id});
+    if(r.error)throw r.error;
+    toast('Pricelist dihapus');
+    await refreshPrices();
+  }
   function interceptServiceActions(root){
     if(!root)return;
     root.addEventListener('click',e=>{
@@ -87,6 +101,7 @@
     const priceList=$('priceList');if(priceList)priceList.addEventListener('click',e=>{
       const b=e.target.closest('[data-hot-price]');if(!b||!priceList.contains(b))return;e.preventDefault();e.stopImmediatePropagation();const id=b.dataset.id;
       if(b.dataset.hotPrice==='toggle')return togglePriceHot(id).catch(x=>toast(x.message));
+      if(b.dataset.hotPrice==='delete')return deletePriceHot(id).catch(x=>toast(x.message));
       db.from('service_prices').select('id,service_id,motor_size_id,price,active').eq('id',id).single().then(q=>{
         if(q.error)throw q.error;$('priceId').value=q.data.id;$('priceService').value=q.data.service_id;$('priceSize').value=q.data.motor_size_id;$('priceValue').value=q.data.price;$('priceActive').checked=q.data.active!==false;$('priceEditor').classList.remove('hidden');$('priceEditor').scrollIntoView({behavior:'smooth'});
       }).catch(x=>toast(x.message));
