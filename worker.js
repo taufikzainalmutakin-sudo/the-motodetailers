@@ -101,6 +101,14 @@ async function servePublic(request, env) {
   const headers = new Headers(response.headers);
   headers.set('Content-Type','text/html; charset=UTF-8');
   headers.set('Cache-Control','no-store, max-age=0, must-revalidate');
+  if (url.pathname === '/' || url.pathname === '/index.html') {
+    const html = await response.text();
+    if (!html.includes('public-sync-v3.js')) {
+      const injected = html.replace(/<\/body>/i,'<script src="./public-sync-v3.js"></script>\n</body>');
+      return new Response(injected,{status:response.status,statusText:response.statusText,headers});
+    }
+    return new Response(html,{status:response.status,statusText:response.statusText,headers});
+  }
   return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
 }
 
