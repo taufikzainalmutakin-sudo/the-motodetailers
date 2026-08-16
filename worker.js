@@ -94,7 +94,7 @@ async function protectAdminPage(request, env) {
   if (url.pathname.startsWith('/admin-dashboard')) {
     const html = await response.text();
     if (!html.includes('admin-motor-catalog-hotfix.js')) {
-      const injected = html.replace(/<\/body>/i,'<script src="./admin-motor-catalog-hotfix.js?v=20260816-catalog1"></script>\n</body>');
+      const injected = html.replace(/<\/body>/i,'<script src="./admin-motor-catalog-hotfix.js?v=20260816-catalog2"></script>\n</body>');
       return new Response(injected,{status:response.status,statusText:response.statusText,headers});
     }
     return new Response(html,{status:response.status,statusText:response.statusText,headers});
