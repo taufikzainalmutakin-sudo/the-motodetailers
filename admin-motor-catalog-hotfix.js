@@ -48,15 +48,19 @@ function boot(){
     $('incomeMotorSize').disabled=true;
     loadIncomeTreatments(m.motor_size_id).catch(err=>{console.error('[TMD income motor catalog]',err);window.alert('Pricelist motor gagal dimuat: '+(err?.message||err))});
   }
+  function normalizeMotorSearch(v){
+    return String(v??'').toLocaleLowerCase('id-ID').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
+  }
   async function searchIncomeMotor(){
     const input=$('incomeMotorSearch');if(!input)return;
     const q=input.value.trim();
     clearTimeout(incomeSearchTimer);
     incomeSearchTimer=setTimeout(async()=>{
       if(q.length<2){$('incomeMotorResults').classList.add('hidden');return;}
-      const r=await db.from('motor_catalog').select('id,brand,model,motor_size_id,active,sort_order,year_start,year_end,notes,motor_sizes(name)').eq('active',true).or(`brand.ilike.%${q}%,model.ilike.%${q}%`).order('brand').order('sort_order').order('model').limit(100);
+      const needle=normalizeMotorSearch(q);
+      const r=await db.from('motor_catalog').select('id,brand,model,motor_size_id,active,sort_order,year_start,year_end,notes,motor_sizes(name)').eq('active',true).order('brand').order('sort_order').order('model').limit(1000);
       if(r.error)throw r.error;
-      const found=r.data||[];
+      const found=(r.data||[]).filter(m=>normalizeMotorSearch(`${m.brand} ${m.model}`).includes(needle));
       $('incomeMotorResults').innerHTML=found.length?found.map(m=>`<div class="search-result" data-income-motor="${m.id}"><b>${esc(m.brand)} ${esc(m.model)}</b><div class="muted">${esc(m.motor_sizes?.name||'-')}</div></div>`).join(''):'<div class="empty">Motor tidak ditemukan di katalog.</div>';
       $('incomeMotorResults').classList.remove('hidden');
     },120);
