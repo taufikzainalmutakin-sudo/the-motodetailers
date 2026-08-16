@@ -83,10 +83,6 @@ async function protectAdminPage(request, env) {
   const response = await env.ASSETS.fetch(request);
   const type = response.headers.get('content-type') || '';
   if (!type.includes('text/html')) return response;
-  const html = await response.text();
-  let injected = html;
-  if (!injected.includes('/admin-dashboard-hotfix.js')) injected = injected.replace('</body>','<script src="/admin-dashboard-hotfix.js?v=3"></script></body>');
-  if (!injected.includes('/admin-dashboard-v3.js')) injected = injected.replace('</body>','<script src="/admin-dashboard-v3.js?v=1"></script></body>');
   const headers = new Headers(response.headers);
   headers.set('Content-Type','text/html; charset=UTF-8');
   headers.set('Cache-Control','private, no-store, max-age=0, must-revalidate');
@@ -94,7 +90,7 @@ async function protectAdminPage(request, env) {
     headers.append('Set-Cookie',cookie(ACCESS_COOKIE,accessToken,3600));
     headers.append('Set-Cookie',cookie(REFRESH_COOKIE,refreshToken,60*60*24*30));
   }
-  return new Response(injected,{status:response.status,statusText:response.statusText,headers});
+  return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
 }
 
 async function servePublic(request, env) {
@@ -102,14 +98,10 @@ async function servePublic(request, env) {
   const type = response.headers.get('content-type') || '';
   const url = new URL(request.url);
   if (!type.includes('text/html') || url.pathname.startsWith('/admin')) return response;
-  const html = await response.text();
-  let injected = html;
-  if (!injected.includes('/public-sync-stable.js')) injected = injected.replace('</body>','<script src="/public-sync-stable.js?v=stable3"></script></body>');
-  if (!injected.includes('/public-sync-v3.js')) injected = injected.replace('</body>','<script src="/public-sync-v3.js?v=1"></script></body>');
   const headers = new Headers(response.headers);
   headers.set('Content-Type','text/html; charset=UTF-8');
   headers.set('Cache-Control','no-store, max-age=0, must-revalidate');
-  return new Response(injected,{status:response.status,statusText:response.statusText,headers});
+  return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
 }
 
 export default {
