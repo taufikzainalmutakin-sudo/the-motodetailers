@@ -32,6 +32,6 @@ function boot(){
   load();
   loadExportExpense();
 }
-function loadExportExpense(){if(document.querySelector('script[data-tmd-income-export-expense]'))return;const s=document.createElement('script');s.src='./admin-income-export-expense-hotfix.js?v=20260816-export1';s.dataset.tmdIncomeExportExpense='1';document.head.appendChild(s)}
+function loadExportExpense(){if(!document.querySelector('script[data-tmd-income-export-expense]')){const s=document.createElement('script');s.src='./admin-income-export-expense-hotfix.js?v=20260816-export1';s.dataset.tmdIncomeExportExpense='1';document.head.appendChild(s)}if(!document.querySelector('script[data-tmd-expense-period]')){const s2=document.createElement('script');s2.src='./admin-expense-period-hotfix.js?v=20260817-period1';s2.dataset.tmdExpensePeriod='1';document.head.appendChild(s2)}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
