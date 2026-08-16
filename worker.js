@@ -96,6 +96,7 @@ async function protectAdminPage(request, env) {
     let injected = html;
     if (!injected.includes('admin-motor-catalog-hotfix.js')) injected = injected.replace(/<\/body>/i,'<script src="./admin-motor-catalog-hotfix.js?v=20260816-catalog2"></script>\n</body>');
     if (!injected.includes('admin-income-payment-edit-hotfix.js')) injected = injected.replace(/<\/body>/i,'<script src="./admin-income-payment-edit-hotfix.js?v=20260816-income2"></script>\n</body>');
+    if (!injected.includes('admin-income-compat-hotfix.js')) injected = injected.replace(/<\/body>/i,'<script src="./admin-income-compat-hotfix.js?v=20260816-income3"></script>\n</body>');
     return new Response(injected,{status:response.status,statusText:response.statusText,headers});
   }
   return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
