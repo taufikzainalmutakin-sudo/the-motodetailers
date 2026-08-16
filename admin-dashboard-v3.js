@@ -5,9 +5,30 @@ const KEY='sb_publishable_dMXeVPXD_oU5NrdV2-sSew_CZxB5lFI';
 const $=id=>document.getElementById(id);
 let db;
 const toast=m=>{const x=$('toast');if(!x){alert(m);return}x.textContent=m;x.classList.remove('hidden');clearTimeout(window.__tmdv3);window.__tmdv3=setTimeout(()=>x.classList.add('hidden'),2600)};
-const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const esc=v=>String(v??'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]));
 const money=v=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(v)||0);
 let services=[],sizes=[],prices=[];
+
+function ensurePriceStyles(){
+ const id='tmd-v3-price-styles';
+ if(document.getElementById(id))return;
+ const style=document.createElement('style');
+ style.id=id;
+ style.textContent=`
+   #priceList .pricerow{align-items:flex-start;flex-wrap:wrap}
+   #priceList .price-actions{flex:1 1 190px;min-width:0;text-align:right}
+   #priceList .price-action-buttons{display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;gap:6px;margin-top:7px}
+   #priceList .price-action-buttons .btn{display:inline-block!important;visibility:visible!important;opacity:1!important;margin:0!important;white-space:nowrap}
+   #priceList .price-action-buttons .btn.danger{display:inline-block!important;background:#dc2626!important;color:#fff!important}
+   @media(max-width:600px){
+     #priceList .pricerow{display:flex;gap:8px}
+     #priceList .price-actions{width:100%;flex-basis:100%;text-align:left}
+     #priceList .price-action-buttons{justify-content:flex-start}
+   }
+ `;
+ document.head.appendChild(style);
+}
+
 async function getData(){
  const [s,z,p]=await Promise.all([
   db.from('services').select('id,name,active,sort_order,slug,description,result_url,image_url').order('sort_order').order('name'),
@@ -35,10 +56,11 @@ function fillSelects(){
 }
 function renderPrices(){
  const box=$('priceList');if(!box)return;
+ ensurePriceStyles();
  const sm=new Map(services.map(s=>[s.id,s])),zm=new Map(sizes.map(z=>[z.id,z]));
  const groups=new Map();
  for(const p of prices){const z=zm.get(p.motor_size_id);const key=p.motor_size_id;if(!groups.has(key))groups.set(key,{name:z?.name||'Size',order:z?.sort_order??999,rows:[]});groups.get(key).rows.push({...p,service:sm.get(p.service_id)});}
- box.innerHTML=[...groups.values()].sort((a,b)=>a.order-b.order||a.name.localeCompare(b.name)).map(g=>`<div class="pricecard"><h3>${esc(g.name)}</h3>${g.rows.sort((a,b)=>(a.service?.name||'').localeCompare(b.service?.name||'')).map(p=>`<div class="pricerow"><div><b>${esc(p.service?.name||'Layanan')}</b><div class="muted">${p.active?'Aktif':'Nonaktif'}</div></div><div style="text-align:right"><strong>${money(p.price)}</strong><br><button type="button" class="btn small" data-v3-price="edit" data-id="${p.id}">Edit</button> <button type="button" class="btn gray small" data-v3-price="toggle" data-id="${p.id}">${p.active?'Nonaktifkan':'Aktifkan'}</button> <button type="button" class="btn danger small" data-v3-price="delete" data-id="${p.id}">Hapus</button></div></div>`).join('')}</div>`).join('')||'<div class="muted">Belum ada harga.</div>';
+ box.innerHTML=[...groups.values()].sort((a,b)=>a.order-b.order||a.name.localeCompare(b.name)).map(g=>`<div class="pricecard"><h3>${esc(g.name)}</h3>${g.rows.sort((a,b)=>(a.service?.name||'').localeCompare(b.service?.name||'')).map(p=>`<div class="pricerow"><div><b>${esc(p.service?.name||'Layanan')}</b><div class="muted">${p.active?'Aktif':'Nonaktif'}</div></div><div class="price-actions"><strong>${money(p.price)}</strong><div class="price-action-buttons"><button type="button" class="btn small" data-v3-price="edit" data-id="${p.id}">Edit harga</button><button type="button" class="btn gray small" data-v3-price="toggle" data-id="${p.id}">${p.active?'Nonaktifkan':'Aktifkan'}</button><button type="button" class="btn danger small" data-v3-price="delete" data-id="${p.id}">Hapus</button></div></div></div>`).join('')}</div>`).join('')||'<div class="muted">Belum ada harga.</div>';
  fillSelects();
 }
 async function refreshPrices(){await getData();ensurePriceTab();renderPrices();}
@@ -58,7 +80,13 @@ async function togglePrice(id){
  const r=await db.rpc('admin_save_service_price',{p_id:id,p_service_id:p.service_id,p_motor_size_id:p.motor_size_id,p_price:p.price,p_active:!p.active});if(r.error)throw r.error;
  toast(p.active?'Harga dinonaktifkan':'Harga diaktifkan');await refreshPrices();
 }
-async function deletePrice(id){if(!confirm('Hapus harga ini?'))return;const r=await db.rpc('admin_delete_service_price',{p_price_id:id});if(r.error)throw r.error;toast('Harga dihapus');await refreshPrices();}
+async function deletePrice(id){
+ if(!confirm('Hapus harga ini?'))return;
+ const r=await db.rpc('admin_delete_service_price',{p_price_id:id});
+ if(r.error)throw r.error;
+ toast('Harga dihapus');
+ await refreshPrices();
+}
 async function toggleService(id){
  const q=await db.from('services').select('id,name,active').eq('id',id).single();if(q.error)throw q.error;
  const r=await db.rpc('admin_set_service_active',{p_service_id:id,p_active:!q.data.active});if(r.error)throw r.error;
@@ -66,6 +94,7 @@ async function toggleService(id){
  await refreshPrices();
 }
 function hook(){
+ ensurePriceStyles();
  ensurePriceTab();
  const tabs=$('tabs');
  if(tabs)tabs.addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;if(b.dataset.tab==='prices'){e.preventDefault();e.stopImmediatePropagation();document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.tabpage').forEach(x=>x.classList.toggle('hidden',x.id!=='prices'));refreshPrices().catch(x=>toast(x.message));}},true);
