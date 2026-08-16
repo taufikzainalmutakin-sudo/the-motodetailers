@@ -90,6 +90,15 @@ async function protectAdminPage(request, env) {
     headers.append('Set-Cookie',cookie(ACCESS_COOKIE,accessToken,3600));
     headers.append('Set-Cookie',cookie(REFRESH_COOKIE,refreshToken,60*60*24*30));
   }
+  const url = new URL(request.url);
+  if (url.pathname.startsWith('/admin-dashboard')) {
+    const html = await response.text();
+    if (!html.includes('admin-motor-catalog-hotfix.js')) {
+      const injected = html.replace(/<\/body>/i,'<script src="./admin-motor-catalog-hotfix.js?v=20260816-catalog1"></script>\n</body>');
+      return new Response(injected,{status:response.status,statusText:response.statusText,headers});
+    }
+    return new Response(html,{status:response.status,statusText:response.statusText,headers});
+  }
   return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
 }
 
