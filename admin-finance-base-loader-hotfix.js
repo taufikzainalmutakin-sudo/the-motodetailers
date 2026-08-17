@@ -1,10 +1,18 @@
 (()=>{
 'use strict';
-function loadFinal(){
-  if(document.querySelector('script[data-tmd-final-finance]'))return;
+function loadExpenseCrud(){
+  if(document.querySelector('script[data-tmd-expense-crud-v2]'))return;
   const s=document.createElement('script');
-  s.src='./admin-finance-final-v2.js?v=20260817-v3';
+  s.src='./admin-expense-crud-hotfix-v2.js?v=20260817-v4';
+  s.dataset.tmdExpenseCrudV2='1';
+  document.head.appendChild(s);
+}
+function loadFinal(){
+  if(document.querySelector('script[data-tmd-final-finance]')){setTimeout(loadExpenseCrud,700);return;}
+  const s=document.createElement('script');
+  s.src='./admin-finance-final-v2.js?v=20260817-v4';
   s.dataset.tmdFinalFinance='1';
+  s.onload=()=>setTimeout(loadExpenseCrud,700);
   document.head.appendChild(s);
 }
 function setup(){
