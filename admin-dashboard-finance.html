@@ -10,14 +10,14 @@
 <script>
 (async()=>{
   try{
-    const r=await fetch('./admin-dashboard-income.html?v=20260817-base',{cache:'no-store'});
+    const r=await fetch('./admin-dashboard-income.html?v=20260817-v3',{cache:'no-store'});
     if(!r.ok)throw new Error('Gagal memuat dashboard utama');
     const html=await r.text();
     document.open();
     document.write(html);
     document.close();
     const s=document.createElement('script');
-    s.src='./admin-finance-base-loader-hotfix.js?v=20260817-final2';
+    s.src='./admin-finance-base-loader-hotfix.js?v=20260817-v3';
     s.dataset.tmdFinanceBoot='1';
     document.head.appendChild(s);
   }catch(e){
