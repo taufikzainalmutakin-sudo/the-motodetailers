@@ -3,7 +3,7 @@
 function loadFinal(){
   if(document.querySelector('script[data-tmd-final-finance]'))return;
   const s=document.createElement('script');
-  s.src='./admin-finance-final-hotfix.js?v=20260817-final1';
+  s.src='./admin-finance-final-v2.js?v=20260817-v2';
   s.dataset.tmdFinalFinance='1';
   document.head.appendChild(s);
 }
