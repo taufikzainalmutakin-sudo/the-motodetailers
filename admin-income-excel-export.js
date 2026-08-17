@@ -7,6 +7,8 @@ if(!sb)return;
 const pad=n=>String(n).padStart(2,'0');
 const today=()=>{const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`};
 const fmtDate=s=>{const [y,m,d]=String(s).slice(0,10).split('-');return `${d}-${m}-${y}`};
+const monthNames=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const longDate=s=>{const [y,m,d]=String(s).slice(0,10).split('-').map(Number);return `${d} ${monthNames[m-1]} ${y}`};
 function toast(msg){const t=document.getElementById('toast');if(t){t.textContent=msg;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),2600)}else alert(msg)}
 async function loadXLSX(){
  if(window.XLSX)return window.XLSX;
@@ -29,6 +31,10 @@ async function getRows(){
  }
  return detail;
 }
+function styleSheet(XLSX,ws,headerRows=[]){
+ ws['!cols']=ws['!cols']||[];
+ for(const r of headerRows){for(let c=0;c<10;c++){const cell=ws[XLSX.utils.encode_cell({r,c})];if(cell)cell.s={font:{bold:true},fill:{fgColor:{rgb:'EAF1FF'}}}}}
+}
 async function exportExcel(){
  const XLSX=await loadXLSX();
  const detail=await getRows();
@@ -46,28 +52,40 @@ async function exportExcel(){
  const wb=XLSX.utils.book_new();
  const wsSummary=XLSX.utils.aoa_to_sheet([
    ['REKAP PEMASUKAN — THE MOTODETAILERS'],
-   ['Dibuat',new Date().toLocaleString('id-ID',{timeZone:'Asia/Jakarta'})],
+   ['Tanggal download',longDate(today())],
+   ['Keterangan','Semua transaksi pemasukan'],
    [],
    ['Tanggal','Jumlah Item','Total Pemasukan','Tunai','QRIS','Transfer'],
    ...summary,
    [],
    ['TOTAL','',total,summary.reduce((a,x)=>a+x[3],0),summary.reduce((a,x)=>a+x[4],0),summary.reduce((a,x)=>a+x[5],0)]
  ]);
- wsSummary['!cols']=[{wch:16},{wch:14},{wch:20},{wch:18},{wch:18},{wch:18}];
- wsSummary['!freeze']={xSplit:0,ySplit:4};
- const detailRows=[['DETAIL PEMASUKAN — THE MOTODETAILERS'],['Tanggal','Nama Motor','Jenis Layanan','Ukuran Motor','Harga','Metode Pembayaran']];
- for(const [date,items] of byDate){detailRows.push([`TANGGAL ${fmtDate(date)}`,'','','','','']);for(const x of items)detailRows.push([fmtDate(x.date),x.motor,x.treatment,x.size,x.price,x.payment])}
+ wsSummary['!cols']=[{wch:18},{wch:14},{wch:20},{wch:18},{wch:18},{wch:18}];
+ wsSummary['!freeze']={xSplit:0,ySplit:5};
+ wsSummary['!autofilter']={ref:`A5:F${4+summary.length}`};
+ wsSummary['!merges']=[{s:{r:0,c:0},e:{r:0,c:5}}];
+ styleSheet(XLSX,wsSummary,[4]);
+ const detailRows=[['DETAIL PEMASUKAN — THE MOTODETAILERS'],['Semua transaksi pemasukan'],[],['Tanggal','Nama Motor','Jenis Layanan','Ukuran Motor','Harga','Metode Pembayaran']];
+ for(const [date,items] of byDate){
+   detailRows.push([`TANGGAL ${longDate(date)}`,'','','','','']);
+   for(const x of items)detailRows.push([fmtDate(x.date),x.motor,x.treatment,x.size,x.price,x.payment]);
+ }
  const wsDetail=XLSX.utils.aoa_to_sheet(detailRows);
- wsDetail['!cols']=[{wch:15},{wch:32},{wch:28},{wch:18},{wch:16},{wch:20}];
- wsDetail['!freeze']={xSplit:0,ySplit:2};
+ wsDetail['!cols']=[{wch:18},{wch:34},{wch:30},{wch:18},{wch:16},{wch:20}];
+ wsDetail['!freeze']={xSplit:0,ySplit:4};
+ wsDetail['!merges']=[{s:{r:0,c:0},e:{r:0,c:5}}];
+ styleSheet(XLSX,wsDetail,[3]);
  const range=XLSX.utils.decode_range(wsDetail['!ref']);
- for(let r=2;r<=range.e.r;r++){const cell=wsDetail[XLSX.utils.encode_cell({r,c:4})];if(cell&&typeof cell.v==='number')cell.z='Rp #,##0'}
- const srange=XLSX.utils.decode_range(wsSummary['!ref']);
- for(let r=4;r<=srange.e.r;r++){for(const c of [2,3,4,5]){const cell=wsSummary[XLSX.utils.encode_cell({r,c})];if(cell&&typeof cell.v==='number')cell.z='Rp #,##0'}}
+ for(let r=0;r<=range.e.r;r++){
+   const first=wsDetail[XLSX.utils.encode_cell({r,c:0})];
+   if(first&&String(first.v).startsWith('TANGGAL ')){for(let c=0;c<=5;c++){const cell=wsDetail[XLSX.utils.encode_cell({r,c})];if(cell)cell.s={font:{bold:true},fill:{fgColor:{rgb:'F4F7FF'}}}}}
+   const price=wsDetail[XLSX.utils.encode_cell({r,c:4})];if(price&&typeof price.v==='number')price.z='Rp #,##0';
+ }
  XLSX.utils.book_append_sheet(wb,wsSummary,'Ringkasan');
  XLSX.utils.book_append_sheet(wb,wsDetail,'Detail Pemasukan');
- XLSX.writeFile(wb,`rekap-pemasukan-${today()}.xlsx`);
- toast('Rekap Excel berhasil diunduh. Ada Ringkasan + Detail Pemasukan.');
+ const fileName=`Rekap ${longDate(today())}.xlsx`;
+ XLSX.writeFile(wb,fileName);
+ toast(`Rekap Excel berhasil diunduh: ${fileName}`);
 }
 function install(){
  const old=document.getElementById('exportIncome');
