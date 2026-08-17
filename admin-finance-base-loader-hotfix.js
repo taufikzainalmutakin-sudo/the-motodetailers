@@ -10,7 +10,7 @@ function loadExpenseCrud(){
 function loadFinal(){
   if(document.querySelector('script[data-tmd-final-finance]')){setTimeout(loadExpenseCrud,700);return;}
   const s=document.createElement('script');
-  s.src='./admin-finance-final-v2.js?v=20260817-v4';
+  s.src='./admin-finance-final-v2.js?v=20260817-v5';
   s.dataset.tmdFinalFinance='1';
   s.onload=()=>setTimeout(loadExpenseCrud,700);
   document.head.appendChild(s);
