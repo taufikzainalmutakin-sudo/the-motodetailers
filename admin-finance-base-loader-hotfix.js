@@ -7,19 +7,12 @@ function loadExpenseCrud(){
   s.dataset.tmdExpenseCrudV2='1';
   document.head.appendChild(s);
 }
-function loadPaymentMethodTable(){
-  if(document.querySelector('script[data-tmd-payment-method-table]'))return;
-  const s=document.createElement('script');
-  s.src='./admin-finance-payment-method-table.js?v=20260817-v1';
-  s.dataset.tmdPaymentMethodTable='1';
-  document.head.appendChild(s);
-}
 function loadFinal(){
-  if(document.querySelector('script[data-tmd-final-finance]')){setTimeout(()=>{loadExpenseCrud();loadPaymentMethodTable()},700);return;}
+  if(document.querySelector('script[data-tmd-final-finance]')){setTimeout(loadExpenseCrud,700);return;}
   const s=document.createElement('script');
   s.src='./admin-finance-final-v2.js?v=20260817-v4';
   s.dataset.tmdFinalFinance='1';
-  s.onload=()=>setTimeout(()=>{loadExpenseCrud();loadPaymentMethodTable()},700);
+  s.onload=()=>setTimeout(loadExpenseCrud,700);
   document.head.appendChild(s);
 }
 function openFinanceEditorModal(section){
@@ -121,7 +114,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 new MutationObserver(()=>{normalizeFinanceToolbar()}).observe(document.body,{childList:true,subtree:true});
 })();
 
-/* TMD payment-method table: kept in this existing loader so no extra JS file is needed. */
+/* TMD payment-method table merged here so the existing finance loader remains the only file for this feature. */
 (()=>{
 'use strict';
 if(window.__TMD_PAYMENT_METHOD_TABLE__) return;
