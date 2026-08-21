@@ -7,6 +7,13 @@ function loadExpenseCrud(){
   s.dataset.tmdExpenseCrudV2='1';
   document.head.appendChild(s);
 }
+function loadExpenseXlsx(){
+  if(document.querySelector('script[data-tmd-expense-xlsx]'))return;
+  const s=document.createElement('script');
+  s.src='./admin-expense-xlsx-hotfix.js?v=20260821-v1';
+  s.dataset.tmdExpenseXlsx='1';
+  document.head.appendChild(s);
+}
 function loadFinal(){
   if(document.querySelector('script[data-tmd-final-finance]')){setTimeout(loadExpenseCrud,700);return;}
   const s=document.createElement('script');
@@ -105,6 +112,7 @@ function setup(){
   if(!document.getElementById('expenses')&&!document.querySelector('script[data-tmd-expense-base]')){
     const s=document.createElement('script');s.src='./admin-income-export-expense-hotfix.js?v=20260817-financebase2';s.dataset.tmdExpenseBase='1';document.head.appendChild(s);
   }
+  loadExpenseXlsx();
   normalizeFinanceToolbar();
   setTimeout(normalizeFinanceToolbar,250);
   setTimeout(normalizeFinanceToolbar,900);
