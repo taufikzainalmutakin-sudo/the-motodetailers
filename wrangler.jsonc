@@ -10,6 +10,7 @@
       "/",
       "/*.html",
       "/admin-dashboard*",
+      "/panel*",
       "/api/admin-session"
     ]
   },
